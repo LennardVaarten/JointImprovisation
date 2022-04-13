@@ -736,11 +736,11 @@ trialDataset$trio = factor(trialDataset$trio)
 
 trialDataset$TE_after_prompt_logtransform = log(trialDataset$TE_after_prompt)
 
-RQ2A = lmer(TE_after_prompt_logtransform ~ number + type + number:type + (1|trio),
+RQ2a = lmer(TE_after_prompt_logtransform ~ number + type + number:type + (1|trio),
      trialDataset[!is.na(trialDataset$TE_after_prompt),])
 
 plot(trialDataset[trialDataset$goodImproAll > 0,]$TE_full, trialDataset[trialDataset$goodImproAll > 0,]$goodImproAll)
-summary(RQ2A)
+summary(RQ2a)
 
 #MuMIn::r.squaredGLMM(RQ2a)
 #confint(RQ2a)
@@ -749,28 +749,27 @@ mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDa
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
 
-RQ2B = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
+RQ2b = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
              trialDataset[!is.na(trialDataset$rho_after_prompt),])
 
-summary(RQ2B)
-MuMIn::r.squaredGLMM(RQ2B)
-confint(RQ2B)
+summary(RQ2b)
+MuMIn::r.squaredGLMM(RQ2b)
+confint(RQ2b)
 
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 1])
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 2])
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 3])
 
-##################
-##################
-## RQ3 ###########
-##################
-##################
+#_____________________________________________________________________________________
+
+# RQ3 ------------
+
+#_____________________________________________________________________________________
 
 
-##################
-##################
-## RQ4 ###########
-##################
-##################
+#_____________________________________________________________________________________
 
+# RQ4 ------------
+
+#_____________________________________________________________________________________
 
