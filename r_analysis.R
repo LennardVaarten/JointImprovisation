@@ -592,12 +592,10 @@ RQ2a_df$predlmer = predict(RQ2a)
 
 ggplot(RQ2a_df, aes(x=Transfer_Entropy, y=Musician_Appreciation)) + 
   geom_point(na.rm=TRUE) +
-  geom_smooth(aes(y = predlmer), size = 1)
+  geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7))
 
 check_model(RQ2a)
-
-RQ2a_df
 
 # RQ2b
 
@@ -606,7 +604,7 @@ RQ2b = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
 summary(RQ2b)
 
 RQ2b_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full)
-RQ2b_df = RQ2a_df[complete.cases(RQ2a_df),]
+RQ2b_df = RQ2b_df[complete.cases(RQ2b_df),]
 names(RQ2b_df) = c("Musician_Appreciation", "Unidirectionality_Index")
 RQ2b_df$predlmer = predict(RQ2b)
 
@@ -622,18 +620,20 @@ RQ2c = lmer(goodImproAll ~ rho_rms_full + (1|trio),
 summary(RQ2c)
 
 RQ2c_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$rho_rms_full)
+RQ2c_df = RQ2c_df[complete.cases(RQ2c_df),]
 names(RQ2c_df) = c("Musician_Appreciation", "Rho")
+RQ2c_df$predlmer = predict(RQ2c)
 
-ggplot(RQ2c_df, aes(x=Musician_Appreciation, y=Rho)) + 
+ggplot(RQ2c_df, aes(x=Rho, y=Musician_Appreciation)) + 
   geom_point(na.rm=TRUE) +
-  geom_smooth() +
-  scale_x_continuous(breaks=seq(1,7))
+  geom_smooth(aes(y = predlmer), size = 1) +
+  scale_y_continuous(breaks=seq(1,7))
 
 check_model(RQ2c)
 
 #_____________________________________________________________________________________
 
-# Compute post-prompt TE, post-prompt rho, unidirectionality ------------
+# Compute post-prompt TE, post-prompt rho, post-prompt unidirectionality index
 
 #_____________________________________________________________________________________
 
@@ -647,21 +647,6 @@ for(group in 1:12) {
     promptType = trialDataset$type[idx]
     promptNumber = trialDataset$number[idx]
     endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
-    
-    unidirectionality_full = 0
-    
-    pairs = combn(c(1:3), m=2)
-    for (pair in 1:3){
-      colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
-      colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
-      
-      pairTEvalues = rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)]
-      unidirectionality_pair = max(pairTEvalues[1] / pairTEvalues[2], pairTEvalues[2] / pairTEvalues[1])
-      
-      unidirectionality_full = unidirectionality_full + unidirectionality_pair
-    }
-    
-    trialDataset$unidirectionality_index_full[idx] = unidirectionality_full
     
     ########
     
@@ -681,8 +666,6 @@ for(group in 1:12) {
         unidirectionality = unidirectionality + max(rmsTExy / rmsTEyx, rmsTExy / rmsTEyx)
         TE_after_prompt = TE_after_prompt + rmsTExy + rmsTEyx
         
-        #############
-        
       }
       TE_after_prompt = TE_after_prompt / 6
       unidirectionality = unidirectionality / 3
@@ -692,7 +675,6 @@ for(group in 1:12) {
   }
   print(sprintf("TE ENDINGS g%s", group))
 }
-
 
 trialDataset$rho_after_prompt = c(rep(NA, nrow(trialDataset)))
 
@@ -731,34 +713,6 @@ for (group in 1:12){
   print(sprintf("EDM ENDINGS g%s", group))
 }
 
-trialDataset$type = factor(trialDataset$type)
-trialDataset$trio = factor(trialDataset$trio)
-
-trialDataset$TE_after_prompt_logtransform = log(trialDataset$TE_after_prompt)
-
-RQ2a = lmer(TE_after_prompt_logtransform ~ number + type + number:type + (1|trio),
-     trialDataset[!is.na(trialDataset$TE_after_prompt),])
-
-plot(trialDataset[trialDataset$goodImproAll > 0,]$TE_full, trialDataset[trialDataset$goodImproAll > 0,]$goodImproAll)
-summary(RQ2a)
-
-#MuMIn::r.squaredGLMM(RQ2a)
-#confint(RQ2a)
-
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 1])
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
-
-RQ2b = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
-             trialDataset[!is.na(trialDataset$rho_after_prompt),])
-
-summary(RQ2b)
-MuMIn::r.squaredGLMM(RQ2b)
-confint(RQ2b)
-
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 1])
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 2])
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 3])
 
 #_____________________________________________________________________________________
 
@@ -766,6 +720,34 @@ mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trial
 
 #_____________________________________________________________________________________
 
+trialDataset$type = factor(trialDataset$type)
+trialDataset$trio = factor(trialDataset$trio)
+
+trialDataset$TE_after_prompt_logtransform = log(trialDataset$TE_after_prompt)
+
+RQ3a = lmer(TE_after_prompt_logtransform ~ number + type + number:type + (1|trio),
+            trialDataset[!is.na(trialDataset$TE_after_prompt),])
+
+plot(trialDataset[trialDataset$goodImproAll > 0,]$TE_full, trialDataset[trialDataset$goodImproAll > 0,]$goodImproAll)
+summary(RQ3a)
+
+#MuMIn::r.squaredGLMM(RQ3a)
+#confint(RQ3a)
+
+mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 1])
+mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
+mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
+
+RQ3b = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
+            trialDataset[!is.na(trialDataset$rho_after_prompt),])
+
+summary(RQ3b)
+MuMIn::r.squaredGLMM(RQ3b)
+confint(RQ3b)
+
+mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 1])
+mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 2])
+mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 3])
 
 #_____________________________________________________________________________________
 
