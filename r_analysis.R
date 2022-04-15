@@ -17,6 +17,7 @@ install.packages("MuMIn")
 install.packages("glme")
 install.packages("future")
 install.packages("performance")
+install.packages("stringr")
 
 # Importing libraries
 library(ggplot2)
@@ -29,6 +30,7 @@ library(MuMIn)
 library(glme)
 library(future)
 library(performance)
+library(stringr)
  
 # Importing our sliding window-averaged data
 rms_timeseries = read.csv("C:/Shortcutsensei/0. Thesis/rms_timeseries.csv")
@@ -36,8 +38,13 @@ tonalcentroid_timeseries_raw = read.csv("C:/Shortcutsensei/0. Thesis/tonal_centr
 spectralflatness_timeseries = read.csv("C:/Shortcutsensei/0. Thesis/spectral_flatness_timeseries.csv")
 
 # Importing datasets with info about the trials
-musicianDataset = read.csv("C:/Shortcutsensei/0. Thesis/Data/postTrialQuestExp2_Results_withComs.csv")
-trialDataset = read.csv("C:/Shortcutsensei/0. Thesis/Data/endingDataset_fromThomas_withconditions.csv", sep=";") 
+musicianDataset = read.csv("C:/Users/lenna/Downloads/study_3_4/study_3_4/endImpro_4R_booths_3_trio_12.csv", sep=";")
+trialDataset = read.csv("C:/Shortcutsensei/JointImprovisation/Data/endingDataset_fromThomas_withconditions.csv", sep=";") 
+listenerDataset = read.csv("C:/Shortcutsensei/JointImprovisation/Data/Appreciation_Data_N46.csv", sep=";")
+
+View(musicianDataset)
+View(trialDataset)
+View(listenerDataset)
 
 #_____________________________________________________________________________________
 
@@ -145,7 +152,6 @@ for(group in 1:12){
         trial_spectralflatness_TE = sum(trial_spectralflatness_TE, spectralflatnessTExy, spectralflatnessTEyx)
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = spectralflatnessTExy
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = spectralflatnessTEyx
-        
         
       }
       
@@ -564,11 +570,11 @@ for (row in 1:nrow(trialDataset)){
     pairTExy = rms_TEvalues_perpair[[sprintf("%s-%s", colname1, colname2)]]
     pairTEyx = rms_TEvalues_perpair[[sprintf("%s-%s", colname2, colname1)]]
     
-    unidirectionality_pair = max(pairTExy / pairTEyx, pairTEyx / pairTExy)
+    unidirectionality_pair = max(c(pairTExy / pairTEyx, pairTEyx / pairTExy))
     unidirectionality_full = unidirectionality_full + unidirectionality_pair
   }
   
-  trialDataset$unidirectionality_index_full[row] = unidirectionality_full
+  trialDataset$unidirectionality_index_full[row] = unidirectionality_full / 3
   
 }
 
@@ -576,7 +582,7 @@ trialDataset$TE_rms_full = unlist(trialDataset$TE_rms_full)
 trialDataset$rho_rms_full = unlist(trialDataset$rho_rms_full)
 trialDataset$unidirectionality_index_full = unlist(trialDataset$unidirectionality_index_full)
 
-View(trialDataset)
+trialDataset$rho_full = unlist(trialDataset$rho_rms_full + trialDataset$rho_tonnetzdistance_full + trialDataset$rho_spectralflatness_full)
 
 # RQ2a
 
@@ -598,7 +604,6 @@ ggplot(RQ2a_df, aes(x=Transfer_Entropy, y=Musician_Appreciation)) +
 check_model(RQ2a)
 
 # RQ2b
-
 RQ2b = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
 summary(RQ2b)
@@ -639,6 +644,13 @@ check_model(RQ2c)
 
 windowSizeInSeconds = (1/22050) * 3520
 
+View(trialDataset)
+
+trialDataset$TE_after_prompt = c(rep(NA, nrow(trialDataset)))
+trialDataset$unidirectionality_index_after_prompt = c(rep(NA, nrow(trialDataset)))
+
+TE_perpair_after_prompt = list()
+
 for(group in 1:12) {
   for(trial in 1:16) {
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
@@ -647,8 +659,6 @@ for(group in 1:12) {
     promptType = trialDataset$type[idx]
     promptNumber = trialDataset$number[idx]
     endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
-    
-    ########
     
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(12/windowSizeInSeconds)) { # require at least 19 seconds of playing after prompt
       pairs = combn(c(1:3), m=2)
@@ -663,9 +673,11 @@ for(group in 1:12) {
                                  rms_timeseries[,colname2][promptWindow:endPoint], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
         rmsTExy = rmsTE$coef[1]
         rmsTEyx = rmsTE$coef[2]
-        unidirectionality = unidirectionality + max(rmsTExy / rmsTEyx, rmsTExy / rmsTEyx)
+        unidirectionality_pair = max(c(rmsTExy / rmsTEyx, rmsTEyx / rmsTExy))
+        unidirectionality = unidirectionality + unidirectionality_pair
         TE_after_prompt = TE_after_prompt + rmsTExy + rmsTEyx
-        
+        TE_perpair_after_prompt[sprintf("%s-%s", colname1, colname2)] = rmsTExy
+        TE_perpair_after_prompt[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
       }
       TE_after_prompt = TE_after_prompt / 6
       unidirectionality = unidirectionality / 3
@@ -697,6 +709,7 @@ for (group in 1:12){
     colnms = c(colname1, colname2, colname3)
     
     trialRMSRho = 0
+    
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
       for(targ in 1:3){
         targRhos = c()
@@ -707,11 +720,14 @@ for (group in 1:12){
         }
         trialRMSRho = trialRMSRho + mean(targRhos)
       }
-      trialDataset$rho_after_prompt[idx] = trialRMSRho
+      trialDataset$rho_after_prompt[idx] = trialRMSRho / 3
     }
   }
   print(sprintf("EDM ENDINGS g%s", group))
 }
+
+trialDataset$TE_after_prompt = unlist(trialDataset$TE_after_prompt)
+trialDataset$rho_after_prompt = unlist(trialDataset$rho_after_prompt)
 
 
 #_____________________________________________________________________________________
@@ -720,19 +736,26 @@ for (group in 1:12){
 
 #_____________________________________________________________________________________
 
+View(listenerDataset)
+
 trialDataset$type = factor(trialDataset$type)
 trialDataset$trio = factor(trialDataset$trio)
 
-trialDataset$TE_after_prompt_logtransform = log(trialDataset$TE_after_prompt)
+# RQ3a
+RQ3a.full = lmer(log(TE_after_prompt) ~ number + type + number:type + (1|trio),
+              trialDataset[!is.na(trialDataset$TE_after_prompt),])
+step(RQ3a.full, direction = "both")
+RQ3a.final = lmer(log(TE_after_prompt) ~ number + type + (1|trio), 
+                  trialDataset[!is.na(trialDataset$TE_after_prompt),])
+summary(RQ3a.final)
 
-RQ3a = lmer(TE_after_prompt_logtransform ~ number + type + number:type + (1|trio),
-            trialDataset[!is.na(trialDataset$TE_after_prompt),])
-
-plot(trialDataset[trialDataset$goodImproAll > 0,]$TE_full, trialDataset[trialDataset$goodImproAll > 0,]$goodImproAll)
-summary(RQ3a)
-
-#MuMIn::r.squaredGLMM(RQ3a)
-#confint(RQ3a)
+# RQ3b
+RQ3b.full = lmer(sqrt(rho_after_prompt) ~ number + type + number:type + (1|trio),
+                 trialDataset[!is.na(trialDataset$rho_after_prompt),])
+step(RQ3b.full, direction = "both")
+RQ3b.final = lmer(sqrt(rho_after_prompt) ~ number + (1|trio), 
+                  trialDataset[!is.na(trialDataset$rho_after_prompt),])
+summary(RQ3b.final)
 
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 1])
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
@@ -755,3 +778,69 @@ mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trial
 
 #_____________________________________________________________________________________
 
+# RQ4a
+
+
+# RQ4b
+
+# RQ4c
+
+from = c()
+to = c()
+from_prompt = c()
+to_prompt = c()
+TE_pair_full = c()
+TE_pair_afterprompt = c()
+directionality_ratio_afterprompt = c()
+
+musicianDataset$booth = factor(musicianDataset$booth)
+levels(musicianDataset$booth) = c(1,2,3)
+
+for(group in 1:12) {
+  for(trial in 1:16) {
+    pairs = combn(c(1:3), m=2)
+    for(pair in 1:3){
+      
+      prompt_heard_1 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[1,pair],]$prompt_heard
+      prompt_heard_2 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[2,pair],]$prompt_heard
+      
+      if (length(prompt_heard_1) != 0 & length(prompt_heard_2) != 0){
+        colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
+        colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
+        from = c(from, colname1, colname2)
+        to = c(to, colname2, colname1)
+        from_prompt = c(from_prompt, prompt_heard_1, prompt_heard_2)
+        to_prompt = c(to_prompt, prompt_heard_2, prompt_heard_1)
+        TE_pair_full = c(TE_pair_full,
+                         rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)], 
+                         rms_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)])
+        TE_pair_afterprompt = c(TE_pair_afterprompt, 
+                                 TE_perpair_after_prompt[sprintf("%s-%s", colname1, colname2)],
+                                 TE_perpair_after_prompt[sprintf("%s-%s", colname2, colname1)])
+      }
+    }
+  }
+}
+
+
+TE_pair_afterprompt
+
+RQ4_pair_df = data.frame(from = from)
+
+RQ4_pair_df$to = to
+RQ4_pair_df$TE_pair_full = TE_pair_full
+RQ4_pair_df$TE_pair_afterprompt = TE_pair_afterprompt
+RQ4_pair_df$from_prompt = from_prompt
+RQ4_pair_df$to_prompt = to_prompt
+
+
+RQ4_pair_df$directionality_ratio_after_prompt = rep(NA, nrow(RQ4_pair_df))
+
+for(row in 1:nrow(RQ4_pair_df)){
+  if(row%%2==1){
+    print(unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])))
+    if(length(unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])))!=0){
+      RQ4_pair_df$directionality_ratio_after_prompt[row] = unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])) / unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row+1]))
+  }
+  }
+}
