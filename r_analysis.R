@@ -706,16 +706,14 @@ for (group in 1:12){
     
     rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
     
-    colnms = c(colname1, colname2, colname3)
-    
     trialRMSRho = 0
     
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
-      for(targ in 1:3){
+      for(colname in c(colname1, colname2, colname3)){
         targRhos = c()
         for(forecast_time in 1:20){
-          simplex_output = block_lnlp(rmsDF, lib = sprintf("1 %s", promptWindow), pred = c(promptWindow+1, endPoints[[sprintf("g%s_t%s", group, trial)]]),
-                                       target_column = colnms[targ], tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+          simplex_output = block_lnlp(rmsDF, lib = sprintf("1 %s", promptWindow), pred = c(promptWindow+1, endPoint),
+                                       target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
           targRhos = c(targRhos, simplex_output$stats$rho$rho)
         }
         trialRMSRho = trialRMSRho + mean(targRhos)
@@ -829,10 +827,9 @@ RQ4_pair_df = data.frame(from = from)
 
 RQ4_pair_df$to = to
 RQ4_pair_df$TE_pair_full = TE_pair_full
-RQ4_pair_df$TE_pair_afterprompt = TE_pair_afterprompt
+RQ4_pair_df$TE_pair_afterprompt = TE_pair_afterprompt # a[sapply(a, is.null)] <- NA
 RQ4_pair_df$from_prompt = from_prompt
 RQ4_pair_df$to_prompt = to_prompt
-
 
 RQ4_pair_df$directionality_ratio_after_prompt = rep(NA, nrow(RQ4_pair_df))
 
@@ -844,3 +841,59 @@ for(row in 1:nrow(RQ4_pair_df)){
   }
   }
 }
+
+for(col in names(RQ4_pair_df)){
+  RQ4_pair_df[col] = unlist(RQ4_pair_df[col])
+}
+
+RQ4_pair_df$from_prompt = factor(RQ4_pair_df$from_prompt)
+RQ4_pair_df$to_prompt = factor(RQ4_pair_df$to_prompt)
+RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
+
+# RQ4a
+RQ4a = lm(directionality_ratio_after_prompt ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), data=RQ4_pair_df)
+summary(RQ4a)
+
+RQ4_pair_df$predictability_change = rep(NA, nrow(RQ4_pair_df))
+
+for (group in 1:12){
+  for (trial in 1:16){
+    idx = which(trialDataset$trio == group & trialDataset$take == trial)
+    promptTime = trialDataset$promptTime[idx]
+    promptWindow = ceiling(promptTime / windowSizeInSeconds)
+    promptType = trialDataset$type[idx]
+    promptNumber = trialDataset$number[idx]
+    endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
+    
+    colname1 = sprintf("g%s_t%s_b1", group, trial)
+    colname2 = sprintf("g%s_t%s_b2", group, trial)
+    colname3 = sprintf("g%s_t%s_b3", group, trial)
+    
+    rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
+    
+    if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
+      for(colname in c(colname1, colname2, colname3)){
+        rho_after_prompt = 0
+        rho_before_prompt = 0
+        for(forecast_time in 1:20){
+          simplex_after_prompt = simplex(as.data.frame(rmsDF[colname]), lib = sprintf("1 %s", promptWindow), pred = c(promptWindow+1, endPoint), tp=forecast_time)
+          simplex_before_prompt = simplex(as.data.frame(rmsDF[colname]), lib = sprintf("201 %s", endPoint), pred = c(1, 200), tp=forecast_time)
+          rho_after_prompt = rho_after_prompt + simplex_after_prompt$stats$rho$rho
+          rho_before_prompt = rho_before_prompt + simplex_before_prompt$stats$rho$rho
+        }
+        predictability_change = rho_after_prompt / rho_before_prompt
+        RQ4_pair_df[RQ4_pair_df$from=="g1_t3_b2",]$predictability_change = predictability_change
+      }
+    }
+  }
+}
+
+
+f = c(1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1)
+f = as.data.frame(f)
+
+simplex(f, "1 10", "10 12")
+
+# IMPORTANT
+# RQ4_pair_df[match(unique(RQ4_pair_df$from), RQ4_pair_df$from),]
+
