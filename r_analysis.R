@@ -18,6 +18,7 @@ install.packages("glme")
 install.packages("future")
 install.packages("performance")
 install.packages("stringr")
+install.packages("tidyr")
 
 # Importing libraries
 library(ggplot2)
@@ -31,6 +32,7 @@ library(glme)
 library(future)
 library(performance)
 library(stringr)
+library(tidyr)
  
 # Importing our sliding window-averaged data
 rms_timeseries = read.csv("C:/Shortcutsensei/0. Thesis/rms_timeseries.csv")
@@ -260,27 +262,13 @@ for(group in 1:12){
       targRhos = c()
       # Calculate rho values from 1 lag up to 20 lags
       for(forecast_time in 1:20){
-        simplex_output = block_lnlp(rmsDF, lib = c(1, endPoint), pred = c(1, endPoint),
-                                     target_column = colname, tp = forecast_time, exclusion_radius=forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
+        simplex_output1 = block_lnlp(rmsDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        simplex_output2 = block_lnlp(rmsDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
       trialRMSRho = trialRMSRho + mean(targRhos)
-    }
-    
-    # Calculate rho for all real pairs of spectral flatness time series
-    
-    spectralFlatnessDF = cbind(spectralflatness_timeseries[colname1], spectralflatness_timeseries[colname2], spectralflatness_timeseries[colname3])
-    
-    trialSpectralFlatnessRho = 0
-    
-    for(colname in colnames){
-      targRhos = c()
-      for(forecast_time in 1:20){
-        simplex_output = block_lnlp(spectralFlatnessDF, lib = c(1, endPoint), pred = c(1, endPoint),
-                                    target_column = colname, tp = forecast_time, exclusion_radius=forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
-      }
-      trialSpectralFlatnessRho = trialSpectralFlatnessRho + mean(targRhos)
     }
     
     # Calculate rho for all real pairs of tonnetz distance time series
@@ -292,12 +280,33 @@ for(group in 1:12){
     for(colname in colnames){
       targRhos = c()
       for(forecast_time in 1:20){
-        simplex_output = block_lnlp(tonnetzdistanceDF, lib = c(1, endPoint), pred = c(1, endPoint),
-                                    target_column = colname, tp = forecast_time, exclusion_radius=forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
+        simplex_output1 = block_lnlp(tonnetzdistanceDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        simplex_output2 = block_lnlp(tonnetzdistanceDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
       trialTonnetzDistanceRho = trialTonnetzDistanceRho + mean(targRhos)
     }
+    
+    # Calculate rho for all real pairs of spectral flatness time series
+    
+    spectralFlatnessDF = cbind(spectralflatness_timeseries[colname1], spectralflatness_timeseries[colname2], spectralflatness_timeseries[colname3])
+    
+    trialSpectralFlatnessRho = 0
+    
+    for(colname in colnames){
+      targRhos = c()
+      for(forecast_time in 1:20){
+        simplex_output1 = block_lnlp(spectralFlatnessDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
+                                    target_column = colname, tp = forecast_time,  stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        simplex_output2 = block_lnlp(spectralFlatnessDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time,  stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+      }
+      trialSpectralFlatnessRho = trialSpectralFlatnessRho + mean(targRhos)
+    }
+    
     
     # The variables trialRMSrho, trialSpectralFlatnessRho and trialTonnetzDistancRho now contain the sum of the rho
     # values for the three different targets. We divide by 3 to get final rho values for the trial.
@@ -342,9 +351,11 @@ for(group in 1:12){
     for(colname in colnames){
       targRhos = c()
       for(forecast_time in 1:20){
-        simplex_output = block_lnlp(rmsDF, lib = c(1, endPoint), pred = c(1, endPoint),
-                                    target_column = colname, tp = forecast_time, exclusion_radius=forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
+        simplex_output1 = block_lnlp(rmsDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        simplex_output2 = block_lnlp(rmsDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
     trialRMSRho = trialRMSRho + mean(targRhos)
@@ -358,9 +369,11 @@ for(group in 1:12){
     for(colname in colnames){
       targRhos = c()
       for(forecast_time in 1:20){
-        simplex_output = block_lnlp(tonnetzdistanceDF, lib = c(1, endPoint), pred = c(1, endPoint),
-                                    target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
+        simplex_output1 = block_lnlp(tonnetzdistanceDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        simplex_output2 = block_lnlp(tonnetzdistanceDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
     
@@ -375,9 +388,11 @@ for(group in 1:12){
     for(colname in colnames){
       targRhos = c()
       for(forecast_time in 1:20){
-        simplex_output = block_lnlp(spectralFlatnessDF, lib = c(1, endPoint), pred = c(1, endPoint),
+        simplex_output1 = block_lnlp(spectralFlatnessDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, simplex_output$stats$rho$rho)
+        simplex_output2 = block_lnlp(spectralFlatnessDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
+                                     target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
 
@@ -715,7 +730,7 @@ for (group in 1:12){
         trialRhoBeforePrompt = trialRhoBeforePrompt + mean(targRhosBeforePrompt)
       }
       trialDataset$rho_after_prompt[idx] = trialRhoAfterPrompt / 3
-      trialDataset$rho_change[idx] = (trialRhoAfterPrompt / 3) / (trialRhoBeforePrompt / 3)
+      trialDataset$rho_change[idx] = ((trialRhoAfterPrompt / 3) - (trialRhoBeforePrompt / 3)) / (trialRhoBeforePrompt / 3)
     }
   }
   print(sprintf("EDM ENDINGS g%s", group))
@@ -724,6 +739,20 @@ for (group in 1:12){
 
 trialDataset$TE_after_prompt = unlist(trialDataset$TE_after_prompt)
 trialDataset$rho_after_prompt = unlist(trialDataset$rho_after_prompt)
+
+# RQ2a
+
+RQ2a.full = lmer(goodImproAll ~ rho_full + (1|trio),
+                 trialDataset)
+
+summary(RQ2a.full)
+step(RQ2a.full, direction="both")
+
+RQ2b.full = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio), trialDataset)
+summary(RQ2b.full)
+
+RQ2c.full = lmer(goodImproAll ~ rho_rms_full + (1|trio), trialDataset)
+summary(RQ2c.full)
 
 #_____________________________________________________________________________________
 
@@ -745,10 +774,10 @@ RQ3a.final = lmer(log(TE_after_prompt) ~ number + type + (1|trio),
 summary(RQ3a.final)
 
 # RQ3b
-RQ3b.full = lmer(sqrt(rho_after_prompt) ~ number + type + number:type + (1|trio),
+RQ3b.full = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
                  trialDataset[!is.na(trialDataset$rho_after_prompt),])
 step(RQ3b.full, direction = "both")
-RQ3b.final = lmer(sqrt(rho_after_prompt) ~ number + (1|trio), 
+RQ3b.final = lmer(rho_after_prompt ~ number + (1|trio), 
                   trialDataset[!is.na(trialDataset$rho_after_prompt),])
 summary(RQ3b.final)
 
@@ -756,31 +785,18 @@ mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDa
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
 
-RQ3b = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
-            trialDataset[!is.na(trialDataset$rho_after_prompt),])
-
-summary(RQ3b)
-MuMIn::r.squaredGLMM(RQ3b)
-confint(RQ3b)
+MuMIn::r.squaredGLMM(RQ3b.final)
+confint(RQ3b.final)
 
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 1])
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 2])
 mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 3])
-
-# Individual Predictability Data ------------------------------------------
 
 #_____________________________________________________________________________________
 
 # RQ4 ------------
 
 #_____________________________________________________________________________________
-
-# RQ4a
-
-
-# RQ4b
-
-# RQ4c
 
 from = c()
 to = c()
@@ -793,6 +809,8 @@ directionality_ratio_afterprompt = c()
 musicianDataset$booth = factor(musicianDataset$booth)
 levels(musicianDataset$booth) = c(1,2,3)
 
+View(musicianDataset)
+
 for(group in 1:12) {
   for(trial in 1:16) {
     pairs = combn(c(1:3), m=2)
@@ -800,6 +818,7 @@ for(group in 1:12) {
       
       prompt_heard_1 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[1,pair],]$prompt_heard
       prompt_heard_2 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[2,pair],]$prompt_heard
+
       
       if (length(prompt_heard_1) != 0 & length(prompt_heard_2) != 0){
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
@@ -844,8 +863,8 @@ for(col in names(RQ4_pair_df)){
 #RQ4_pair_df$individual_predictability_change = rep(NA, nrow(RQ4_pair_df))
 #RQ4_pair_df$individual_predictability_full = rep(NA, nrow(RQ4_pair_df))
 
-for (group in 2:3){
-  for (trial in 1:16){
+for(group in c(1:12)){
+  for (trial in c(1:16)){
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
     promptTime = trialDataset$promptTime[idx]
     promptWindow = ceiling(promptTime / windowSizeInSeconds)
@@ -858,27 +877,30 @@ for (group in 2:3){
     
     rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
     
-    for(colname in colnames){
-      total_rho = c()
-      for(forecast_time in 1:20){
-        simplex_full = block_lnlp(unlist(rms_timeseries[colname]), tp=forecast_time)
-        total_rho = c(total_rho, simplex_full$const_pred_rho$rho)
-      }
-      RQ4_pair_df[match(colname, RQ4_pair_df$from),]$individual_predictability_full = mean(total_rho)
-    }
-    
-    if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
+    if(nrow(RQ4_pair_df[RQ4_pair_df$from == colname1,]) > 0){
       for(colname in colnames){
-        total_rho_after_prompt = c()
-        total_rho_before_prompt = c()
+        total_rho = c()
         for(forecast_time in 1:20){
-          simplex_after_prompt = block_lnlp(unlist(rms_timeseries[colname]), lib = sprintf("1 %s", promptWindow), pred = c(promptWindow+1, endPoint), tp=forecast_time)
-          simplex_before_prompt = block_lnlp(unlist(rms_timeseries[colname]), lib = sprintf("1 %s", promptWindow), pred = c(1, promptWindow), tp=forecast_time, exclusion_radius = forecast_time)
-          total_rho_after_prompt = c(total_rho_after_prompt, simplex_after_prompt$const_pred_rho$rho)
-          total_rho_before_prompt = c(total_rho_before_prompt, simplex_before_prompt$const_pred_rho$rho)
+          simplex_full = block_lnlp(unlist(rms_timeseries[colname]), tp=forecast_time)
+          total_rho = c(total_rho, simplex_full$const_pred_rho$rho)
         }
-        individual_predictability_change = mean(total_rho_after_prompt) / mean(total_rho_before_prompt)
-        RQ4_pair_df[match(colname, RQ4_pair_df$from),]$individual_predictability_change = individual_predictability_change
+        RQ4_pair_df[match(colname, RQ4_pair_df$from),]$individual_predictability_full = mean(total_rho)
+      }
+      
+      if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
+        for(colname in colnames){
+          total_rho_after_prompt = c()
+          total_rho_before_prompt = c()
+          for(forecast_time in 1:20){
+            simplex_after_prompt = block_lnlp(unlist(rms_timeseries[colname]), lib = c(1, promptWindow), pred = c(promptWindow+1, endPoint), tp=forecast_time)
+            simplex_before_prompt1 = block_lnlp(unlist(rms_timeseries[colname]), lib = c(1, floor(promptWindow/2)), pred = c(floor(promptWindow/2)+1, promptWindow), tp=forecast_time)
+            simplex_before_prompt2 = block_lnlp(unlist(rms_timeseries[colname]), lib = c(floor(promptWindow/2)+1, promptWindow), pred = c(1, floor(promptWindow/2)), tp=forecast_time)
+            total_rho_after_prompt = c(total_rho_after_prompt, simplex_after_prompt$const_pred_rho$rho)
+            total_rho_before_prompt = c(total_rho_before_prompt, mean(simplex_before_prompt1$const_pred_rho$rho, simplex_before_prompt2$const_pred_rho$rho))
+          }
+          individual_predictability_change = (mean(total_rho_after_prompt) - mean(total_rho_before_prompt)) / mean(total_rho_before_prompt)
+          RQ4_pair_df[match(colname, RQ4_pair_df$from),]$individual_predictability_change = individual_predictability_change
+        }
       }
     }
   }
@@ -889,11 +911,13 @@ RQ4_pair_df$from_prompt = factor(RQ4_pair_df$from_prompt)
 RQ4_pair_df$to_prompt = factor(RQ4_pair_df$to_prompt)
 RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
 
-RQ4_pair_df
-
 # RQ4a
+RQ4a = lm(TE_pair_full ~ individual_predictability_full, RQ4_pair_df)
+summary(RQ4a)
 
 # RQ4b
+RQ4b = lm(individual_predictability_change ~ from_prompt, RQ4_pair_df[!is.na(RQ4_pair_df$individual_predictability_change),])
+summary(RQ4b)
 
 # RQ4c
 RQ4c = lm(directionality_ratio_after_prompt ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), data=RQ4_pair_df)
