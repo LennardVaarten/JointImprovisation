@@ -186,31 +186,73 @@ for(group in 1:12){
         colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
         
         # Calculate transfer entropy for all possible pairs of RMS amplitude time series within the trial
-        rmsTE = transfer_entropy(rms_timeseries[,colname1],
-                             rms_timeseries[,colname2], shuffles=100, lx=20, ly=20, nboot=1, quiet=TRUE, seed=TRUE)
-        rmsTExy = rmsTE$coef[1]
-        rmsTEyx = rmsTE$coef[2]
-        trial_rms_TE = sum(trial_rms_TE, rmsTExy, rmsTEyx)
+        
+        rmsTExy = 0
+        rmsTEyx = 0
+        
+        for(markov_order in 1:20){
+          transfer_entropy = transfer_entropy(rms_timeseries[,colname1],
+                                              rms_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+          trial_rms_TE = c(trial_rms_TE, transfer_entropy)
+          TExy = transfer_entropy$coef[1]
+          TEyx = transfer_entropy$coef[2]
+          rmsTExy = rmsTExy + TExy
+          rmsTEyx = rmsTEyx + TEyx
+        }
+        
+        rmsTExy = rmsTExy / 20
+        rmsTEyx = rmsTEyx / 20
+        
         rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = rmsTExy
         rms_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
+        
+        trial_rms_TE = trial_rms_TE + rmsTExy + rmsTEyx
 
         # Calculate transfer entropy for all possible pairs of tonnetz distance time series within the trial
-        tonnetzdistanceTE = transfer_entropy(tonnetzdistance_timeseries[,colname1], 
-                                             tonnetzdistance_timeseries[,colname2], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
-        tonnetzdistanceTExy = tonnetzdistanceTE$coef[1]
-        tonnetzdistanceTEyx = tonnetzdistanceTE$coef[2]
-        trial_tonnetzdistance_TE = sum(trial_tonnetzdistance_TE, tonnetzdistanceTExy, tonnetzdistanceTEyx)
+        
+        tonnetzdistanceTExy = 0
+        tonnetzdistanceTEyx = 0
+        
+        for(markov_order in 1:20){
+          transfer_entropy = transfer_entropy(tonnetzdistance_timeseries[,colname1],
+                                              tonnetzdistance_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+          trial_tonnetzdistance_TE = c(trial_tonnetzdistance_TE, transfer_entropy)
+          TExy = transfer_entropy$coef[1]
+          TEyx = transfer_entropy$coef[2]
+          tonnetzdistanceTExy = tonnetzdistanceTExy + TExy
+          tonnetzdistanceTEyx = tonnetzdistanceTEyx + TEyx
+        }
+        
+        tonnetzdistanceTExy = tonnetzdistanceTExy / 20
+        tonnetzdistanceTEyx = tonnetzdistanceTEyx / 20
+        
         tonnetzdistance_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = tonnetzdistanceTExy
         tonnetzdistance_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = tonnetzdistanceTEyx
         
+        trial_tonnetzdistance_TE = trial_tonnetzdistance_TE + tonnetzdistanceTExy + tonnetzdistanceTEyx
+        
         # Calculate transfer entropy for all possible pairs of spectral flatness time series within the trial
-        spectralflatnessTE = transfer_entropy(spectralflatness_timeseries[,colname1],
-                                 spectralflatness_timeseries[,colname2], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
-        spectralflatnessTExy = spectralflatnessTE$coef[1]
-        spectralflatnessTEyx = spectralflatnessTE$coef[2]
-        trial_spectralflatness_TE = sum(trial_spectralflatness_TE, spectralflatnessTExy, spectralflatnessTEyx)
+        
+        spectralflatnessTExy = 0
+        spectralflatnessTEyx = 0
+        
+        for(markov_order in 1:20){
+          transfer_entropy = transfer_entropy(spectralflatness_timeseries[,colname1],
+                                              spectralflatness_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+          trial_spectralflatness_TE = c(trial_spectralflatness_TE, transfer_entropy)
+          TExy = transfer_entropy$coef[1]
+          TEyx = transfer_entropy$coef[2]
+          spectralflatnessTExy = spectralflatnessTExy + TExy
+          spectralflatnessTEyx = spectralflatnessTEyx + TEyx
+        }
+        
+        spectralflatnessTExy = spectralflatnessTExy / 20
+        spectralflatnessTEyx = spectralflatnessTEyx / 20
+        
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = spectralflatnessTExy
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = spectralflatnessTEyx
+        
+        trial_spectralflatness_TE = trial_spectralflatness_TE + spectralflatnessTExy + spectralflatnessTEyx
         
       }
       
@@ -243,10 +285,21 @@ for(group in 1:12){
       colname2 = sprintf("g%s_t%s_b%s", group, trialRandom, pairs[2,pair])
       
       # Calculate transfer entropy for pairs of RMS amplitude time series
-      rmsTE = transfer_entropy(rms_timeseries[,colname1],
-                               rms_timeseries[,colname2], shuffles=1, nboot=1, lx=20, ly=20, quiet=TRUE, seed=TRUE)
-      rmsTExy = rmsTE$coef[1]
-      rmsTEyx = rmsTE$coef[2]
+      rmsTExy = 0
+      rmsTEyx = 0
+      
+      for(markov_order in 1:20){
+        transfer_entropy = transfer_entropy(rms_timeseries[,colname1],
+                                            rms_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+        trial_rms_TE = c(trial_rms_TE, transfer_entropy)
+        TExy = transfer_entropy$coef[1]
+        TEyx = transfer_entropy$coef[2]
+        rmsTExy = rmsTExy + TExy
+        rmsTEyx = rmsTEyx + TEyx
+      }
+      
+      rmsTExy = rmsTExy / 20
+      rmsTEyx = rmsTEyx / 20
 
       rms_TEvalues_random = c(rms_TEvalues_random, rmsTExy, rmsTEyx)
       
