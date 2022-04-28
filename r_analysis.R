@@ -44,6 +44,8 @@ musicianDataset = read.csv("C:/Users/lenna/Downloads/study_3_4/study_3_4/endImpr
 trialDataset = read.csv("C:/Shortcutsensei/JointImprovisation/Data/endingDataset_fromThomas_withconditions.csv", sep=";") 
 listenerDataset = read.csv("C:/Shortcutsensei/JointImprovisation/Data/Appreciation_Data_N46.csv", sep=";")
 
+windowSizeInSeconds = (1/22050) * 3520
+
 View(musicianDataset)
 View(trialDataset)
 View(listenerDataset)
@@ -94,6 +96,61 @@ for(group in 1:12) {
 
 #_____________________________________________________________________________________
 
+# Plotting acoustic feature time series for intuition ------------
+
+#_____________________________________________________________________________________
+
+rms_timeseries_example_b1 = rms_timeseries$g1_t1_b1[!is.na(rms_timeseries$g1_t1_b1)]
+rms_timeseries_example_b2 = rms_timeseries$g1_t1_b2[!is.na(rms_timeseries$g1_t1_b1)]
+rms_timeseries_example_b3 = rms_timeseries$g1_t1_b3[!is.na(rms_timeseries$g1_t1_b1)]
+rms_timeseries_example = data.frame(seconds=seq(length(rms_timeseries_example_b1)) * windowSizeInSeconds,
+                                                b1=rms_timeseries_example_b1,
+                                                b2=rms_timeseries_example_b2,
+                                                b3=rms_timeseries_example_b3)[0:60/windowSizeInSeconds,]
+
+ggplot(data=rms_timeseries_example, aes(x=seconds)) +
+  geom_line(aes(y=b1), color="steelblue") +
+  geom_line(aes(y=b2), color="red") +
+  geom_line(aes(y=b3), color="black") +
+  ylab("RMS Amplitude") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#
+
+tonnetzdistance_timeseries_example_b1 = tonnetzdistance_timeseries$g1_t1_b1[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
+tonnetzdistance_timeseries_example_b2 = tonnetzdistance_timeseries$g1_t1_b2[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
+tonnetzdistance_timeseries_example_b3 = tonnetzdistance_timeseries$g1_t1_b3[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
+tonnetzdistance_timeseries_example = data.frame(seconds=seq(length(tonnetzdistance_timeseries_example_b1)) * windowSizeInSeconds,
+                                    b1=tonnetzdistance_timeseries_example_b1,
+                                    b2=tonnetzdistance_timeseries_example_b2,
+                                    b3=tonnetzdistance_timeseries_example_b3)[0:60/windowSizeInSeconds,]
+
+ggplot(data=tonnetzdistance_timeseries_example, aes(x=seconds)) +
+  geom_line(aes(y=b1), color="steelblue") +
+  geom_line(aes(y=b2), color="red") +
+  geom_line(aes(y=b3), color="black") +
+  ylab("Tonnetz Distance") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#
+
+spectralflatness_timeseries_example_b1 = spectralflatness_timeseries$g1_t1_b1[!is.na(spectralflatness_timeseries$g1_t1_b1)]
+spectralflatness_timeseries_example_b2 = spectralflatness_timeseries$g1_t1_b2[!is.na(spectralflatness_timeseries$g1_t1_b1)]
+spectralflatness_timeseries_example_b3 = spectralflatness_timeseries$g1_t1_b3[!is.na(spectralflatness_timeseries$g1_t1_b1)]
+spectralflatness_timeseries_example = data.frame(seconds=seq(length(spectralflatness_timeseries_example_b1)) * windowSizeInSeconds,
+                                                b1=spectralflatness_timeseries_example_b1,
+                                                b2=spectralflatness_timeseries_example_b2,
+                                                b3=spectralflatness_timeseries_example_b3)[0:60/windowSizeInSeconds,]
+
+ggplot(data=spectralflatness_timeseries_example, aes(x=seconds)) +
+  geom_line(aes(y=b1), color="steelblue") +
+  geom_line(aes(y=b2), color="red") +
+  geom_line(aes(y=b3), color="black") +
+  ylab("Spectral Flatness") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#_____________________________________________________________________________________
+
 # TE for real pairs / trios and random pairs ------------
 
 #_____________________________________________________________________________________
@@ -130,7 +187,7 @@ for(group in 1:12){
         
         # Calculate transfer entropy for all possible pairs of RMS amplitude time series within the trial
         rmsTE = transfer_entropy(rms_timeseries[,colname1],
-                             rms_timeseries[,colname2], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
+                             rms_timeseries[,colname2], shuffles=100, lx=20, ly=20, nboot=1, quiet=TRUE, seed=TRUE)
         rmsTExy = rmsTE$coef[1]
         rmsTEyx = rmsTE$coef[2]
         trial_rms_TE = sum(trial_rms_TE, rmsTExy, rmsTEyx)
@@ -187,7 +244,7 @@ for(group in 1:12){
       
       # Calculate transfer entropy for pairs of RMS amplitude time series
       rmsTE = transfer_entropy(rms_timeseries[,colname1],
-                               rms_timeseries[,colname2], shuffles=1, nboot=1, quiet=TRUE, seed=TRUE)
+                               rms_timeseries[,colname2], shuffles=1, nboot=1, lx=20, ly=20, quiet=TRUE, seed=TRUE)
       rmsTExy = rmsTE$coef[1]
       rmsTEyx = rmsTE$coef[2]
 
@@ -645,8 +702,6 @@ check_model(RQ2c)
 
 #_____________________________________________________________________________________
 
-windowSizeInSeconds = (1/22050) * 3520
-
 View(trialDataset)
 
 trialDataset$TE_after_prompt = c(rep(NA, nrow(trialDataset)))
@@ -916,6 +971,8 @@ summary(RQ4a)
 RQ4b = lm(individual_predictability_change ~ relevel(from_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$individual_predictability_change),])
 summary(step(RQ4b, direction = "both"))
 summary(RQ4b)
+
+nrow(RQ4_pair_df[!is.na(RQ4_pair_df$individual_predictability_change),])
 
 # RQ4c
 RQ4c = lm(sqrt(directionality_ratio_after_prompt) ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$directionality_ratio_after_prompt),])
