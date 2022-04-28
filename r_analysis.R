@@ -96,9 +96,11 @@ for(group in 1:12) {
 
 #_____________________________________________________________________________________
 
-# Plotting acoustic feature time series for intuition ------------
+# Plotting example of acoustic feature time series ------------
 
 #_____________________________________________________________________________________
+
+# RMS Amplitude
 
 rms_timeseries_example_b1 = rms_timeseries$g1_t1_b1[!is.na(rms_timeseries$g1_t1_b1)]
 rms_timeseries_example_b2 = rms_timeseries$g1_t1_b2[!is.na(rms_timeseries$g1_t1_b1)]
@@ -115,7 +117,7 @@ ggplot(data=rms_timeseries_example, aes(x=seconds)) +
   ylab("RMS Amplitude") +
   theme(plot.title = element_text(hjust = 0.5))
 
-#
+# Tonnetz Distance
 
 tonnetzdistance_timeseries_example_b1 = tonnetzdistance_timeseries$g1_t1_b1[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
 tonnetzdistance_timeseries_example_b2 = tonnetzdistance_timeseries$g1_t1_b2[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
@@ -132,7 +134,7 @@ ggplot(data=tonnetzdistance_timeseries_example, aes(x=seconds)) +
   ylab("Tonnetz Distance") +
   theme(plot.title = element_text(hjust = 0.5))
 
-#
+# Spectral Flatness
 
 spectralflatness_timeseries_example_b1 = spectralflatness_timeseries$g1_t1_b1[!is.na(spectralflatness_timeseries$g1_t1_b1)]
 spectralflatness_timeseries_example_b2 = spectralflatness_timeseries$g1_t1_b2[!is.na(spectralflatness_timeseries$g1_t1_b1)]
@@ -176,9 +178,9 @@ for(group in 1:12){
       # Get all possible combinations of booths: booth 1-2, booth 1-3, booth 2-3
       pairs = combn(c(1:3), m=2)
       
-      trial_rms_TE = 0
-      trial_spectralflatness_TE = 0
-      trial_tonnetzdistance_TE = 0
+      trial_rms_TE = c()
+      trial_spectralflatness_TE = c()
+      trial_tonnetzdistance_TE = c()
       
       for(pair in 1:3){
         
@@ -192,7 +194,7 @@ for(group in 1:12){
         
         for(markov_order in 1:20){
           transfer_entropy = transfer_entropy(rms_timeseries[,colname1],
-                                              rms_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+                                              rms_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
           trial_rms_TE = c(trial_rms_TE, transfer_entropy)
           TExy = transfer_entropy$coef[1]
           TEyx = transfer_entropy$coef[2]
@@ -206,7 +208,7 @@ for(group in 1:12){
         rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = rmsTExy
         rms_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
         
-        trial_rms_TE = trial_rms_TE + rmsTExy + rmsTEyx
+        trial_rms_TE = c(trial_rms_TE, rmsTExy, rmsTEyx)
 
         # Calculate transfer entropy for all possible pairs of tonnetz distance time series within the trial
         
@@ -215,7 +217,7 @@ for(group in 1:12){
         
         for(markov_order in 1:20){
           transfer_entropy = transfer_entropy(tonnetzdistance_timeseries[,colname1],
-                                              tonnetzdistance_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+                                              tonnetzdistance_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
           trial_tonnetzdistance_TE = c(trial_tonnetzdistance_TE, transfer_entropy)
           TExy = transfer_entropy$coef[1]
           TEyx = transfer_entropy$coef[2]
@@ -229,7 +231,7 @@ for(group in 1:12){
         tonnetzdistance_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = tonnetzdistanceTExy
         tonnetzdistance_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = tonnetzdistanceTEyx
         
-        trial_tonnetzdistance_TE = trial_tonnetzdistance_TE + tonnetzdistanceTExy + tonnetzdistanceTEyx
+        trial_tonnetzdistance_TE = c(trial_tonnetzdistance_TE, tonnetzdistanceTExy, tonnetzdistanceTEyx)
         
         # Calculate transfer entropy for all possible pairs of spectral flatness time series within the trial
         
@@ -238,7 +240,7 @@ for(group in 1:12){
         
         for(markov_order in 1:20){
           transfer_entropy = transfer_entropy(spectralflatness_timeseries[,colname1],
-                                              spectralflatness_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
+                                              spectralflatness_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
           trial_spectralflatness_TE = c(trial_spectralflatness_TE, transfer_entropy)
           TExy = transfer_entropy$coef[1]
           TEyx = transfer_entropy$coef[2]
@@ -252,20 +254,19 @@ for(group in 1:12){
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = spectralflatnessTExy
         spectralflatness_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = spectralflatnessTEyx
         
-        trial_spectralflatness_TE = trial_spectralflatness_TE + spectralflatnessTExy + spectralflatnessTEyx
+        trial_spectralflatness_TE = c(trial_spectralflatness_TE, spectralflatnessTExy, spectralflatnessTEyx)
         
       }
       
-      # We have summed 6 TE values per trial (booth 1-2, 1-3, 2-3, 2-1, and so on). Divide by 6 to
-      # get a trial-wide average TE value.
-      rms_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = trial_rms_TE / 6
-      tonnetzdistance_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = trial_tonnetzdistance_TE / 6
-      spectralflatness_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = trial_spectralflatness_TE / 6
+      rms_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_rms_TE)
+      tonnetzdistance_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_tonnetzdistance_TE)
+      spectralflatness_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_spectralflatness_TE)
       
   }
   # Logging
   print(sprintf("TE REAL g%s", group))
 }
+
 
 # RANDOM PAIRS
 # Calculate TE values for 'random pairs' of musicians; i.e., same group, different trial.
@@ -290,8 +291,7 @@ for(group in 1:12){
       
       for(markov_order in 1:20){
         transfer_entropy = transfer_entropy(rms_timeseries[,colname1],
-                                            rms_timeseries[,colname2], shuffles=100, lx=markov_order, ly=markov_order, nboot=1, quiet=TRUE, seed=TRUE)
-        trial_rms_TE = c(trial_rms_TE, transfer_entropy)
+                                            rms_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=100, quiet=TRUE, seed=TRUE)
         TExy = transfer_entropy$coef[1]
         TEyx = transfer_entropy$coef[2]
         rmsTExy = rmsTExy + TExy
@@ -304,18 +304,39 @@ for(group in 1:12){
       rms_TEvalues_random = c(rms_TEvalues_random, rmsTExy, rmsTEyx)
       
       # Calculate transfer entropy for all possible pairs of tonnetz distance time series within the trial
-      tonnetzdistanceTE = transfer_entropy(tonnetzdistance_timeseries[,colname1], 
-                                           tonnetzdistance_timeseries[,colname2], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
-      tonnetzdistanceTExy = tonnetzdistanceTE$coef[1]
-      tonnetzdistanceTEyx = tonnetzdistanceTE$coef[2]
+      tonnetzdistanceTExy = 0
+      tonnetzdistanceTEyx = 0
+      
+      for(markov_order in 1:20){
+        transfer_entropy = transfer_entropy(tonnetzdistance_timeseries[,colname1],
+                                            tonnetzdistance_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
+        TExy = transfer_entropy$coef[1]
+        TEyx = transfer_entropy$coef[2]
+        tonnetzdistanceTExy = tonnetzdistanceTExy + TExy
+        tonnetzdistanceTEyx = tonnetzdistanceTEyx + TEyx
+      }
+      
+      tonnetzdistanceTExy = tonnetzdistanceTExy / 20
+      tonnetzdistanceTEyx = tonnetzdistanceTEyx / 20
       
       tonnetzdistance_TEvalues_random = c(tonnetzdistance_TEvalues_random, tonnetzdistanceTExy, tonnetzdistanceTEyx)
-
+      
       # Calculate transfer entropy for all possible pairs of spectral flatness time series within the trial
-      spectralflatnessTE = transfer_entropy(spectralflatness_timeseries[,colname1],
-                                            spectralflatness_timeseries[,colname2], shuffles=1, nboot=1, quiet=TRUE, seed=TRUE)
-      spectralflatnessTExy = spectralflatnessTE$coef[1]
-      spectralflatnessTEyx = spectralflatnessTE$coef[2]
+
+      spectralflatnessTExy = 0
+      spectralflatnessTEyx = 0
+      
+      for(markov_order in 1:20){
+        transfer_entropy = transfer_entropy(spectralflatness_timeseries[,colname1],
+                                            spectralflatness_timeseries[,colname2], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
+        TExy = transfer_entropy$coef[1]
+        TEyx = transfer_entropy$coef[2]
+        spectralflatnessTExy = spectralflatnessTExy + TExy
+        spectralflatnessTEyx = spectralflatnessTEyx + TEyx
+      }
+      
+      spectralflatnessTExy = spectralflatnessTExy / 20
+      spectralflatnessTEyx = spectralflatnessTEyx / 20
       
       spectralflatness_TEvalues_random = c(spectralflatness_TEvalues_random, spectralflatnessTExy, spectralflatnessTEyx)
       
@@ -773,25 +794,36 @@ for(group in 1:12) {
     
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(12/windowSizeInSeconds)) { # require at least 19 seconds of playing after prompt
       pairs = combn(c(1:3), m=2)
-      unidirectionality = 0
-      TE_after_prompt = 0
+      unidirectionality = c()
+      TE_after_prompt = c()
       for(pair in 1:3){
         
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
         colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
         
-        rmsTE = transfer_entropy(rms_timeseries[,colname1][promptWindow:endPoint],
-                                 rms_timeseries[,colname2][promptWindow:endPoint], shuffles=100, nboot=1, quiet=TRUE, seed=TRUE)
-        rmsTExy = rmsTE$coef[1]
-        rmsTEyx = rmsTE$coef[2]
+        rmsTExy = 0
+        rmsTEyx = 0
+        
+        for(markov_order in 1:20){
+          transfer_entropy = transfer_entropy(rms_timeseries[,colname1][promptWindow:endPoint],
+                                              rms_timeseries[,colname2][promptWindow:endPoint], shuffles=1, lx=markov_order, ly=markov_order, nboot=10, quiet=TRUE, seed=TRUE)
+          TExy = transfer_entropy$coef[1]
+          TEyx = transfer_entropy$coef[2]
+          rmsTExy = rmsTExy + TExy
+          rmsTEyx = rmsTEyx + TEyx
+        }
+        
+        rmsTExy = rmsTExy / 20
+        rmsTEyx = rmsTEyx / 20
+        
         unidirectionality_pair = max(c(rmsTExy / rmsTEyx, rmsTEyx / rmsTExy))
-        unidirectionality = unidirectionality + unidirectionality_pair
-        TE_after_prompt = TE_after_prompt + rmsTExy + rmsTEyx
+        unidirectionality = c(unidirectionality, unidirectionality_pair)
+        TE_after_prompt = c(TE_after_prompt, rmsTExy, rmsTEyx)
         TE_perpair_after_prompt[sprintf("%s-%s", colname1, colname2)] = rmsTExy
         TE_perpair_after_prompt[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
       }
-      TE_after_prompt = TE_after_prompt / 6
-      unidirectionality = unidirectionality / 3
+      TE_after_prompt = mean(TE_after_prompt)
+      unidirectionality = mean(unidirectionality)
       trialDataset$TE_after_prompt[idx] = TE_after_prompt
       trialDataset$unidirectionality_index_after_prompt[idx] = unidirectionality
     }
@@ -832,7 +864,7 @@ for (group in 1:12){
           simplex_before_prompt2 = block_lnlp(rmsDF, lib = c(floor(promptWindow/2)+1, promptWindow), pred = c(1, floor(promptWindow/2)),
                                              target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
           
-          simplex_after_prompt = block_lnlp(rmsDF, lib = sprintf("1 %s", promptWindow), pred = c(promptWindow+1, endPoint),
+          simplex_after_prompt = block_lnlp(rmsDF, lib = c(1, promptWindow), pred = c(promptWindow+1, endPoint),
                                        target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
           targRhosAfterPrompt = c(targRhos, simplex_after_prompt$stats$rho$rho)
           targRhosBeforePrompt = c(targRhosBeforePrompt, simplex_before_prompt1$stats$rho$rho, simplex_before_prompt1$stats$rho$rho)
@@ -841,7 +873,9 @@ for (group in 1:12){
         trialRhoBeforePrompt = trialRhoBeforePrompt + mean(targRhosBeforePrompt)
       }
       trialDataset$rho_after_prompt[idx] = trialRhoAfterPrompt / 3
-      trialDataset$rho_change[idx] = ((trialRhoAfterPrompt / 3) - (trialRhoBeforePrompt / 3)) / (trialRhoBeforePrompt / 3)
+      
+      # REMOVE LATER
+      #trialDataset$rho_change[idx] = ((trialRhoAfterPrompt / 3) - (trialRhoBeforePrompt / 3)) / (trialRhoBeforePrompt / 3)
     }
   }
   print(sprintf("EDM ENDINGS g%s", group))
@@ -901,7 +935,7 @@ from_prompt = c()
 to_prompt = c()
 TE_pair_full = c()
 TE_pair_afterprompt = c()
-directionality_ratio_afterprompt = c()
+directionality_afterprompt = c()
 
 musicianDataset$booth = factor(musicianDataset$booth)
 levels(musicianDataset$booth) = c(1,2,3)
@@ -915,7 +949,6 @@ for(group in 1:12) {
       
       prompt_heard_1 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[1,pair],]$prompt_heard
       prompt_heard_2 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[2,pair],]$prompt_heard
-
       
       if (length(prompt_heard_1) != 0 & length(prompt_heard_2) != 0){
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
@@ -1034,8 +1067,11 @@ summary(RQ4c)
 
 hist(sqrt(RQ4_pair_df$directionality_ratio_after_prompt))
 
-# IMPORTANT
-# RQ4_pair_df[match(unique(RQ4_pair_df$from), RQ4_pair_df$from),]
-
 RQ4_pair_df[RQ4_pair_df$from=="g1_t3_b1",]$individual_predictability_full
+
+
+
+
+# save for later
+# RQ4_pair_df[match(unique(RQ4_pair_df$from), RQ4_pair_df$from),]
 
