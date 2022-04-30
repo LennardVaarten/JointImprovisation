@@ -803,19 +803,20 @@ check_model(RQ2c)
 
 #_____________________________________________________________________________________
 
-# Compute post-prompt TE, post-prompt rho, post-prompt unidirectionality index --------
+# Compute post-prompt TE, post-prompt rho --------
 
 #_____________________________________________________________________________________
 
-View(trialDataset)
-
+# Add empty columns to dataframe
 trialDataset$TE_after_prompt = c(rep(NA, nrow(trialDataset)))
 trialDataset$unidirectionality_index_after_prompt = c(rep(NA, nrow(trialDataset)))
 
+# Initialize empty list of pairwise post-prompt TE values
 TE_perpair_after_prompt = list()
 
 for(group in 1:12) {
   for(trial in 1:16) {
+    # Get info about the current trial
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
     promptTime = trialDataset$promptTime[idx]
     promptWindow = ceiling(promptTime / windowSizeInSeconds)
@@ -823,9 +824,10 @@ for(group in 1:12) {
     promptNumber = trialDataset$number[idx]
     endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
     
-    if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) { # require at least 19 seconds of playing after prompt
+    # Get TE of the part of the improvisation that occurred after the prompt.
+    # Only include trials where all 3 musicians continued playing for at least 10 seconds after the prompt
+    if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
       pairs = combn(c(1:3), m=2)
-      unidirectionality = c()
       TE_after_prompt = c()
       for(pair in 1:3){
         
@@ -847,18 +849,16 @@ for(group in 1:12) {
         rmsTExy = rmsTExy / 20
         rmsTEyx = rmsTEyx / 20
         
-        unidirectionality_pair = max(c(rmsTExy / rmsTEyx, rmsTEyx / rmsTExy))
-        unidirectionality = c(unidirectionality, unidirectionality_pair)
         TE_after_prompt = c(TE_after_prompt, rmsTExy, rmsTEyx)
+        # Save pairwise post-prompt TE values
         TE_perpair_after_prompt[sprintf("%s-%s", colname1, colname2)] = rmsTExy
         TE_perpair_after_prompt[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
       }
-      TE_after_prompt = mean(TE_after_prompt)
-      unidirectionality = mean(unidirectionality)
-      trialDataset$TE_after_prompt[idx] = TE_after_prompt
-      trialDataset$unidirectionality_index_after_prompt[idx] = unidirectionality
+      # Save trial-wide post-prompt TE value
+      trialDataset$TE_after_prompt[idx] = mean(TE_after_prompt)
     }
   }
+  # Logging
   print(sprintf("TE ENDINGS g%s", group))
 }
 
@@ -867,7 +867,7 @@ trialDataset$rho_change = c(rep(NA, nrow(trialDataset)))
 
 for (group in 1:12){
   for (trial in 1:16){
-    
+    # Get info about the current trial
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
     promptTime = trialDataset$promptTime[idx]
     promptWindow = ceiling(promptTime / windowSizeInSeconds)
@@ -875,12 +875,11 @@ for (group in 1:12){
     promptNumber = trialDataset$number[idx]
     endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
     
-    colname1 = sprintf("g%s_t%s_b1", group, trial)
-    colname2 = sprintf("g%s_t%s_b2", group, trial)
-    colname3 = sprintf("g%s_t%s_b3", group, trial)
-    colnames = c(colname1, colname2, colname3)
+    colnames = c(sprintf("g%s_t%s_b1", group, trial), 
+                 sprintf("g%s_t%s_b2", group, trial), 
+                 sprintf("g%s_t%s_b3", group, trial))
     
-    rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
+    rmsDF = cbind(rms_timeseries[colnames[1]], rms_timeseries[colnames[2]], rms_timeseries[colnames[3]])
     
     trialRhoAfterPrompt = 0
     trialRhoBeforePrompt = 0
@@ -904,11 +903,9 @@ for (group in 1:12){
         trialRhoBeforePrompt = trialRhoBeforePrompt + mean(rhos_forecast_timesBeforePrompt)
       }
       trialDataset$rho_after_prompt[idx] = trialRhoAfterPrompt / 3
-      
-      # REMOVE LATER
-      #trialDataset$rho_change[idx] = ((trialRhoAfterPrompt / 3) - (trialRhoBeforePrompt / 3)) / (trialRhoBeforePrompt / 3)
     }
   }
+  # Logging
   print(sprintf("EDM ENDINGS g%s", group))
 }
 
