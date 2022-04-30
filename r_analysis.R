@@ -1,6 +1,3 @@
-# calc_ete() function: returns single number without
-
-
 #__________________________________________________________________________
 
 
@@ -67,7 +64,7 @@ for(group in 1:12) {
   for(trial in 1:16) {
     for(booth in 1:3) {
       
-      # Create string featuring the name of the current column
+      # Create string featuring the identifier of the current time series
       colname = sprintf("g%s_t%s_b%s", group, trial, booth)
       # Initialize empty vector, which will contain distance values between each windows tonnetz TONw and 
       # the previous window's tonnetz, TONw-1.
@@ -81,12 +78,12 @@ for(group in 1:12) {
           # for the very first window's tonnetz, compute the tonnetz distance as simply the distance from a tonnetz of only 0's
           distance = dist(rbind(tonnetz, rep(0, 6)))[1]
         } else {
-          # for all subsequent windows, compute the euclidean distance between the current and previous tonnetz. 
+          # for all subsequent windows, compute the Euclidean distance between the current and previous tonnetz. 
           # This represents a measure of harmonic change from one window to the next.
           prevTonnetz = unname(unlist(curBooth[row-1,]))
           distance = dist(rbind(tonnetz, prevTonnetz))[1]
         }
-        # Append to our vector of distances
+        # Append to our vector of tonnetz distances
         distVec = c(distVec, distance)
       }
       # Add distance to dataframe
@@ -103,8 +100,10 @@ for(group in 1:12) {
 
 #_____________________________________________________________________________________
 
-# RMS Amplitude
+# For each acoustic feature, make a line plot of the 3 musicians in trio 1, trial 1.
+# See figure 1 in text.
 
+# RMS amplitude
 rms_timeseries_example_b1 = rms_timeseries$g1_t1_b1[!is.na(rms_timeseries$g1_t1_b1)]
 rms_timeseries_example_b2 = rms_timeseries$g1_t1_b2[!is.na(rms_timeseries$g1_t1_b1)]
 rms_timeseries_example_b3 = rms_timeseries$g1_t1_b3[!is.na(rms_timeseries$g1_t1_b1)]
@@ -120,8 +119,7 @@ ggplot(data=rms_timeseries_example, aes(x=seconds)) +
   ylab("RMS Amplitude") +
   theme(plot.title = element_text(hjust = 0.5))
 
-# Tonnetz Distance
-
+# Tonnetz distance
 tonnetzdistance_timeseries_example_b1 = tonnetzdistance_timeseries$g1_t1_b1[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
 tonnetzdistance_timeseries_example_b2 = tonnetzdistance_timeseries$g1_t1_b2[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
 tonnetzdistance_timeseries_example_b3 = tonnetzdistance_timeseries$g1_t1_b3[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
@@ -137,8 +135,7 @@ ggplot(data=tonnetzdistance_timeseries_example, aes(x=seconds)) +
   ylab("Tonnetz Distance") +
   theme(plot.title = element_text(hjust = 0.5))
 
-# Spectral Flatness
-
+# Spectral flatness
 spectralflatness_timeseries_example_b1 = spectralflatness_timeseries$g1_t1_b1[!is.na(spectralflatness_timeseries$g1_t1_b1)]
 spectralflatness_timeseries_example_b2 = spectralflatness_timeseries$g1_t1_b2[!is.na(spectralflatness_timeseries$g1_t1_b1)]
 spectralflatness_timeseries_example_b3 = spectralflatness_timeseries$g1_t1_b3[!is.na(spectralflatness_timeseries$g1_t1_b1)]
@@ -162,7 +159,7 @@ ggplot(data=spectralflatness_timeseries_example, aes(x=seconds)) +
 
 # REAL PAIRS + TRIALS
 # Calculate TE values for all 'real pairs' of musicians; i.e., same group, same trial. Also calculate
-# TE for trials by computing mean of pairwise TE for each pair in a trial. This will come in handy in RQ2.
+# TE for trials by computing mean of all pairwise TEs a trial. This will come in handy in RQ2.
 
 # Initialize empty vectors
 rms_TEvalues_perpair = list()
@@ -173,12 +170,12 @@ rms_TEvalues_pertrial = list()
 spectralflatness_TEvalues_pertrial = list()
 tonnetzdistance_TEvalues_pertrial = list()
 
-# enable parallel processing for all future transfer_entropy calls
+# Enable parallel processing for all calc_ete() calls
 plan(multisession)
 
 for(group in 1:12){
   for(trial in 1:16){
-      # Get all possible combinations of booths: booth 1-2, booth 1-3, booth 2-3
+      # Get all combinations of booths: booth 1-2, booth 1-3, booth 2-3
       pairs = combn(c(1:3), m=2)
       
       trial_rms_TE = c()
@@ -190,11 +187,13 @@ for(group in 1:12){
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
         colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
         
-        # Calculate transfer entropy for all possible pairs of RMS amplitude time series within the trial
+        # Calculate transfer entropy for all pairs of RMS amplitude time series within the trial
         
         rmsTExy = 0
         rmsTEyx = 0
         
+        # Run calc_ete() with Markov orders from 1 up to 20, to mitigate the issue of
+        # having a fixed time delay. calc_ete() calculates effective transfer entropy.
         for(markov_order in 1:20){
           TExy = calc_ete(rms_timeseries[,colname1],
                           rms_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
@@ -204,12 +203,16 @@ for(group in 1:12){
           rmsTEyx = rmsTEyx + TEyx
         }
         
+        # We have calculated 20 TE values both ways for this pair. Divide by 20 to average over
+        # the different markov order settings.
         rmsTExy = rmsTExy / 20
         rmsTEyx = rmsTEyx / 20
         
+        # Store results in list
         rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)] = rmsTExy
         rms_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)] = rmsTEyx
         
+        # We will later take the mean of this vector to get one final TE value for the whole trial
         trial_rms_TE = c(trial_rms_TE, rmsTExy, rmsTEyx)
 
         # Calculate transfer entropy for all possible pairs of tonnetz distance time series within the trial
@@ -258,9 +261,13 @@ for(group in 1:12){
         
       }
       
+      # Get trial-wide TE values by averaging over the 6 pairwise TE values for each trial.
+      # Store in list.
       rms_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_rms_TE)
       tonnetzdistance_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_tonnetzdistance_TE)
       spectralflatness_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)] = mean(trial_spectralflatness_TE)
+      
+      # Logging
       print(sprintf("TE REAL g%s t%s", group, trial))   
   }
 }
@@ -282,7 +289,7 @@ for(group in 1:12){
       colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
       colname2 = sprintf("g%s_t%s_b%s", group, trialRandom, pairs[2,pair])
       
-      # Calculate transfer entropy for pairs of RMS amplitude time series
+      # Calculate effective transfer entropy for random pairs of RMS amplitude time series
       rmsTExy = 0
       rmsTEyx = 0
       
@@ -297,10 +304,11 @@ for(group in 1:12){
       
       rmsTExy = rmsTExy / 20
       rmsTEyx = rmsTEyx / 20
-
+      
+      # add all random-pair TE values to a vector
       rms_TEvalues_random = c(rms_TEvalues_random, rmsTExy, rmsTEyx)
       
-      # Calculate transfer entropy for all possible pairs of tonnetz distance time series within the trial
+      # Calculate transfer entropy for random pairs of tonnetz distance time series
       tonnetzdistanceTExy = 0
       tonnetzdistanceTEyx = 0
       
@@ -318,7 +326,7 @@ for(group in 1:12){
       
       tonnetzdistance_TEvalues_random = c(tonnetzdistance_TEvalues_random, tonnetzdistanceTExy, tonnetzdistanceTEyx)
       
-      # Calculate transfer entropy for all possible pairs of spectral flatness time series within the trial
+      # Calculate transfer entropy for random pairs of spectral flatness time series
 
       spectralflatnessTExy = 0
       spectralflatnessTEyx = 0
@@ -356,92 +364,101 @@ spectralflatness_TEvalues_raw = unname(unlist(spectralflatness_TEvalues_perpair)
 
 # REAL TRIOS
 
+# Initialize empty lists
 rms_rhovalues = list()
 tonnetzdistance_rhovalues = list()
 spectralflatness_rhovalues = list()
 
-# List which contains, for each trial, the window at which at least one of the musicians has
+# This list will contain, for each trial, the window at which at least one of the musicians has
 # stopped playing.
 endPoints = list()
 
 for(group in 1:12){
   for(trial in 1:16){
     
-    colname1 = sprintf("g%s_t%s_b1", group, trial)
-    colname2 = sprintf("g%s_t%s_b2", group, trial)
-    colname3 = sprintf("g%s_t%s_b3", group, trial)
+    # Get the three recordings from a trial
+    colnames = c(sprintf("g%s_t%s_b1", group, trial), 
+                 sprintf("g%s_t%s_b2", group, trial), 
+                 sprintf("g%s_t%s_b3", group, trial))
     
-    colnames = c(colname1, colname2, colname3)
-    
-    endPoint = min(c(which(is.na(rms_timeseries[colname1]))[1], 
-                      which(is.na(rms_timeseries[colname2]))[1], 
-                      which(is.na(rms_timeseries[colname3]))[1]))
+    # Get the ending of the performance (i.e. window at which the first musician stops playing)
+    endPoint = min(c(which(is.na(rms_timeseries[colnames[1]]))[1], 
+                      which(is.na(rms_timeseries[colnames[2]]))[1], 
+                      which(is.na(rms_timeseries[colnames[3]]))[1]))
     
     endPoints[sprintf("g%s_t%s", group, trial)] = endPoint
     
     # Calculate rho for all real pairs of RMS amplitude time series
     
-    rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
+    rmsDF = cbind(rms_timeseries[colnames[1]], rms_timeseries[colnames[2]], rms_timeseries[colnames[3]])
     
-    trialRMSRho = 0
+    trialRMSRho = c()
     
     # For each trial, calculate three values of rho, each with a different booth as the target
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       # Calculate rho values from 1 lag up to 20 lags
       for(forecast_time in 1:20){
+        # First, we use the first half of the performance to construct the attractor manifold
+        # and use the second half to predict
         simplex_output1 = block_lnlp(rmsDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endPoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
+        # Then, we turn it around; we use the second half to construct the manifold and the first half
+        # for prediction purposes
         simplex_output2 = block_lnlp(rmsDF, lib = c(floor(endPoint/2)+1, endPoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        # Average the two rho values we got out of this and append to rhos_forecast_times vector
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
-      trialRMSRho = trialRMSRho + mean(targRhos)
+      # Average rhos_forecast_times (a vector of length 20); append to trialRMSRho,
+      # which we will later average to get the group-level predictability
+      trialRMSRho = c(trialRMSRho, mean(rhos_forecast_times))
     }
     
     # Calculate rho for all real pairs of tonnetz distance time series
     
     tonnetzdistanceDF = cbind(tonnetzdistance_timeseries[colname1], tonnetzdistance_timeseries[colname2], tonnetzdistance_timeseries[colname3])
     
-    trialTonnetzDistanceRho = 0
+    trialTonnetzDistanceRho = c()
     
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       for(forecast_time in 1:20){
         simplex_output1 = block_lnlp(tonnetzdistanceDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
         simplex_output2 = block_lnlp(tonnetzdistanceDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
-      trialTonnetzDistanceRho = trialTonnetzDistanceRho + mean(targRhos)
+      trialTonnetzDistanceRho = c(trialTonnetzDistanceRho, mean(rhos_forecast_times))
     }
     
     # Calculate rho for all real pairs of spectral flatness time series
     
     spectralFlatnessDF = cbind(spectralflatness_timeseries[colname1], spectralflatness_timeseries[colname2], spectralflatness_timeseries[colname3])
     
-    trialSpectralFlatnessRho = 0
+    trialSpectralFlatnessRho = c()
     
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       for(forecast_time in 1:20){
         simplex_output1 = block_lnlp(spectralFlatnessDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                     target_column = colname, tp = forecast_time,  stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
         simplex_output2 = block_lnlp(spectralFlatnessDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time,  stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
-      trialSpectralFlatnessRho = trialSpectralFlatnessRho + mean(targRhos)
+      trialSpectralFlatnessRho = c(trialSpectralFlatnessRho, mean(rhos_forecast_times))
     }
     
     
-    # The variables trialRMSrho, trialSpectralFlatnessRho and trialTonnetzDistancRho now contain the sum of the rho
-    # values for the three different targets. We divide by 3 to get final rho values for the trial.
-    rms_rhovalues[sprintf("g%s_t%s", group, trial)] = trialRMSRho / 3
-    spectralflatness_rhovalues[sprintf("g%s_t%s", group, trial)] = trialSpectralFlatnessRho / 3
-    tonnetzdistance_rhovalues[sprintf("g%s_t%s", group, trial)] = trialTonnetzDistanceRho / 3
+    # The vectors trialRMSrho, trialSpectralFlatnessRho and trialTonnetzDistanceRho each contain 3 rho values;
+    # one for musician (i.e. target). Average them to get group-level predictability.
+    rms_rhovalues[sprintf("g%s_t%s", group, trial)] = mean(trialRMSRho)
+    spectralflatness_rhovalues[sprintf("g%s_t%s", group, trial)] = mean(trialSpectralFlatnessRho)
+    tonnetzdistance_rhovalues[sprintf("g%s_t%s", group, trial)] = mean(trialTonnetzDistanceRho)
   }
+  # Logging
   print(sprintf("EDM REAL g%s", group))
 }
 
@@ -459,53 +476,51 @@ for(group in 1:12){
     trialRandom1 = if (trial != 16) trial+1 else 1
     trialRandom2 = if (trial != 1) trial-1 else 16
     
-    colname1 = sprintf("g%s_t%s_b1", group, trial)
-    colname2 = sprintf("g%s_t%s_b2", group, trialRandom1)
-    colname3 = sprintf("g%s_t%s_b3", group, trialRandom2)
+    colnames = c(sprintf("g%s_t%s_b1", group, trial),
+                 sprintf("g%s_t%s_b2", group, trialRandom1),
+                 sprintf("g%s_t%s_b3", group, trialRandom2))
     
-    colnames = c(colname1, colname2, colname3)
-    
-    # This gives us the point, for this trial, at which at least 1 musician has stopped playing for good.
-    endPoint = min(c(which(is.na(rms_timeseries[colname1]))[1], 
-                     which(is.na(rms_timeseries[colname2]))[1], 
-                     which(is.na(rms_timeseries[colname3]))[1]))
+    # This gives us the point, for this random trio, at which at least 1 musician has stopped playing for good.
+    endPoint = min(c(which(is.na(rms_timeseries[colnames[1]]))[1], 
+                     which(is.na(rms_timeseries[colnames[2]]))[1], 
+                     which(is.na(rms_timeseries[colnames[3]]))[1]))
     
     # Calculate rho for random pairs of RMS amplitude time series
 
     rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
 
-    trialRMSRho = 0
+    trialRMSRho = 
 
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       for(forecast_time in 1:20){
         simplex_output1 = block_lnlp(rmsDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
         simplex_output2 = block_lnlp(rmsDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
-    trialRMSRho = trialRMSRho + mean(targRhos)
+    trialRMSRho = c(trialRMSRho, mean(rhos_forecast_times))
     
     # Calculate rho for random pairs of tonnetz distance time series
     
     tonnetzdistanceDF = cbind(tonnetzdistance_timeseries[colname1], tonnetzdistance_timeseries[colname2], tonnetzdistance_timeseries[colname3])
     
-    trialTonnetzDistanceRho = 0
+    trialTonnetzDistanceRho = c()
     
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       for(forecast_time in 1:20){
         simplex_output1 = block_lnlp(tonnetzdistanceDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
         simplex_output2 = block_lnlp(tonnetzdistanceDF, lib = c(floor(endpoint/2)+1, endpoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
     
-    trialTonnetzDistanceRho = trialTonnetzDistanceRho + mean(targRhos)
+    trialTonnetzDistanceRho = c(trialTonnetzDistanceRho, mean(rhos_forecast_times))
 
     # Calculate rho for random pairs of spectral flatness time series
 
@@ -514,27 +529,28 @@ for(group in 1:12){
     trialSpectralFlatnessRho = 0
 
     for(colname in colnames){
-      targRhos = c()
+      rhos_forecast_times = c()
       for(forecast_time in 1:20){
         simplex_output1 = block_lnlp(spectralFlatnessDF, lib = c(1, floor(endPoint / 2)), pred = c(floor(endpoint/2)+1, endPoint),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
         simplex_output2 = block_lnlp(spectralFlatnessDF, lib = c(floor(endpoint/2)+1, endPoint), pred = c(1, floor(endPoint / 2)),
                                      target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-        targRhos = c(targRhos, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
+        rhos_forecast_times = c(rhos_forecast_times, mean(simplex_output1$stats$rho$rho, simplex_output2$stats$rho$rho))
       }
     }
 
-    trialSpectralFlatnessRho = trialSpectralFlatnessRho + mean(targRhos)
+    trialSpectralFlatnessRho = c(trialSpectralFlatnessRho, mean(rhos_forecast_times))
     
-    rms_rhovalues_random = c(rms_rhovalues_random, trialRMSRho / 3)
-    tonnetzdistance_rhovalues_random = c(tonnetzdistance_rhovalues_random, trialTonnetzDistanceRho / 3)
-    spectralflatness_rhovalues_random = c(spectralflatness_rhovalues_random, trialSpectralFlatnessRho / 3)
+    rms_rhovalues_random = c(rms_rhovalues_random, mean(trialRMSRho))
+    tonnetzdistance_rhovalues_random = c(tonnetzdistance_rhovalues_random, mean(trialTonnetzDistanceRho))
+    spectralflatness_rhovalues_random = c(spectralflatness_rhovalues_random, mean(trialSpectralFlatnessRho))
     
   }
-  # logging
+  # Logging
   print(sprintf("EDM RANDOM g%s", group))
 }
 
+# Get raw values to make data amenable to statistical tests
 rms_rhovalues_raw = unname(unlist(rms_rhovalues))
 tonnetzdistance_rhovalues_raw = unname(unlist(tonnetzdistance_rhovalues))
 spectralflatness_rhovalues_raw = unname(unlist(spectralflatness_rhovalues))
@@ -548,16 +564,19 @@ spectralflatness_rhovalues_raw = unname(unlist(spectralflatness_rhovalues))
 # RQ1a
 
 # Test for normality
+qqnorm(rms_TEvalues_raw)
 
-shapiro.test(rms_TEvalues_raw)
-
+# Descriptive statistics
 mean(rms_TEvalues_raw)
 sd(rms_TEvalues_raw)
 mean(rms_TEvalues_random)
 sd(rms_TEvalues_random)
 
+# Test for significant difference between TE values for RMS amplitude time series
+# of real vs random pairs
 wilcox.test(rms_TEvalues_raw, rms_TEvalues_random)
 
+# Plot the relationship
 RQ1a_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random)
 names(RQ1a_df) = c("RMS TE real", "RMS TE random")
 RQ1a_df = gather(RQ1a_df)
@@ -570,8 +589,8 @@ ggplot(RQ1a_df, aes(x=value, y=key)) +
                geom = "point", 
                colour = "black")
 
-# RQ1b
-shapiro.test(tonnetzdistance_TEvalues_raw)
+# Tonnetz distance TE
+qqnorm(tonnetzdistance_TEvalues_raw)
 
 mean(tonnetzdistance_TEvalues_raw)
 sd(tonnetzdistance_TEvalues_raw)
@@ -592,8 +611,8 @@ ggplot(RQ1b_df, aes(x=value, y=key)) +
                geom = "point", 
                colour = "black")
 
-# RQ1c
-shapiro.test(spectralflatness_TEvalues_raw)
+# Spectral flatness TE
+qqnorm(spectralflatness_TEvalues_raw)
 
 mean(spectralflatness_TEvalues_raw)
 sd(spectralflatness_TEvalues_raw)
@@ -614,8 +633,10 @@ ggplot(RQ1c_df, aes(x=value, y=key)) +
                geom = "point", 
                colour = "black")
 
-# RQ1d
-shapiro.test(rms_rhovalues_raw)
+# RQ1b - same as before, but now with rho values
+
+# RMS amplitude rho
+qqnorm(rms_rhovalues_raw)
 
 mean(rms_rhovalues_raw)
 sd(rms_rhovalues_raw)
@@ -630,14 +651,14 @@ RQ1d_df = gather(RQ1d_df)
 ggplot(RQ1d_df, aes(x=value, y=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("average rho") +
+  xlab("rho") +
   ylab("real-random") +
   stat_summary(fun = "mean",
                geom = "point", 
                colour = "black")
 
-# RQ1e
-shapiro.test(tonnetzdistance_rhovalues_raw)
+# Tonnetz distance rho
+qqnorm(tonnetzdistance_rhovalues_raw)
 
 mean(tonnetzdistance_rhovalues_raw)
 sd(tonnetzdistance_rhovalues_raw)
@@ -652,14 +673,14 @@ RQ1e_df = gather(RQ1e_df)
 ggplot(RQ1e_df, aes(x=value, y=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("average rho") +
+  xlab("rho") +
   ylab("real-random") +
   stat_summary(fun = "mean",
                geom = "point", 
                colour = "black")
 
-# RQ1f
-shapiro.test(spectralflatness_rhovalues_raw)
+# Spectral flatness rho
+qqnorm(spectralflatness_rhovalues_raw)
 
 mean(spectralflatness_rhovalues_raw)
 sd(spectralflatness_rhovalues_raw)
@@ -674,7 +695,7 @@ RQ1f_df = gather(RQ1f_df)
 ggplot(RQ1f_df, aes(x=value, y=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("average rho") +
+  xlab("rho") +
   ylab("real-random") + 
   stat_summary(fun = "mean",
                geom = "point",
@@ -687,29 +708,38 @@ ggplot(RQ1f_df, aes(x=value, y=key)) +
 #_____________________________________________________________________________________
 
 for (row in 1:nrow(trialDataset)){
+  # Add trial-wide rho and TE values to dataframe
   group = trialDataset[row, "trio"]
   trial = trialDataset[row, "take"]
   trialDataset$rho_rms_full[row] = rms_rhovalues[[sprintf("g%s_t%s", group, trial)]]
   trialDataset$TE_rms_full[row] = rms_TEvalues_pertrial[sprintf("g%s_t%s", group, trial)]
 
-  unidirectionality_full = 0
+  unidirectionality_indices = c()
   
+  # Get all pairs within trial
   pairs = combn(c(1:3), m=2)
   for (pair in 1:3){
     colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
     colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
     
+    # Retrieve pairwise TE values from list
     pairTExy = rms_TEvalues_perpair[[sprintf("%s-%s", colname1, colname2)]]
     pairTEyx = rms_TEvalues_perpair[[sprintf("%s-%s", colname2, colname1)]]
     
-    unidirectionality_pair = max(c(pairTExy / pairTEyx, pairTEyx / pairTExy))
-    unidirectionality_full = unidirectionality_full + unidirectionality_pair
+    # Calculate the unidirectionality index of a pair. Unidirectionality index is 
+    # always a value of at least 1, with 1 signifying perfect bidirectionality.
+    unidirectionality_index_pair = max(c(pairTExy / pairTEyx, pairTEyx / pairTExy))
+    # Append pair unidirectionality index to vector of unidirectionality indices in the trial.
+    unidirectionality_indices = c(unidirectionality_indices, unidirectionality_pair)
   }
   
-  trialDataset$unidirectionality_index_full[row] = unidirectionality_full / 3
-  
+  # Take average of unidirectionality indices within the trial to get the unidirectionality
+  # index for the whole trial. 'full' here indicates that we take TE over the whole performance,
+  # not just the part after the prompt.
+  trialDataset$unidirectionality_index_full[row] = mean(unidirectionality_full)
 }
 
+# Get data in suitable format for statistical testing
 trialDataset$TE_rms_full = unlist(trialDataset$TE_rms_full)
 trialDataset$rho_rms_full = unlist(trialDataset$rho_rms_full)
 trialDataset$unidirectionality_index_full = unlist(trialDataset$unidirectionality_index_full)
@@ -717,25 +747,26 @@ trialDataset$unidirectionality_index_full = unlist(trialDataset$unidirectionalit
 trialDataset$rho_full = unlist(trialDataset$rho_rms_full + trialDataset$rho_tonnetzdistance_full + trialDataset$rho_spectralflatness_full)
 
 # RQ2a
-
+# Does the amount of information flow predict subjective quality of improvisations?
 RQ2a = lmer(goodImproAll ~ TE_rms_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
 summary(RQ2a)
 
+# Plot the relationship
 RQ2a_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$TE_rms_full)
 RQ2a_df = RQ2a_df[complete.cases(RQ2a_df),]
 names(RQ2a_df) = c("Musician_Appreciation", "Transfer_Entropy")
-
 RQ2a_df$predlmer = predict(RQ2a)
-
 ggplot(RQ2a_df, aes(x=Transfer_Entropy, y=Musician_Appreciation)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7))
 
+# Check if model meets assumptions of linear mixed effects models
 check_model(RQ2a)
 
 # RQ2b
+# Does directionality of information flow predict subjective quality of improvisations?
 RQ2b = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
 summary(RQ2b)
@@ -750,8 +781,10 @@ ggplot(RQ2b_df, aes(x=Unidirectionality_Index, y=Musician_Appreciation)) +
   scale_y_continuous(breaks=seq(1,7)) +
   geom_smooth(aes(y = predlmer), size = 1) 
 
-# RQ2c
+check_model(RQ2b)
 
+# RQ2c
+# Does group-level predictability predict subjective quality of improvisations?
 RQ2c = lmer(goodImproAll ~ rho_rms_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
 summary(RQ2c)
@@ -854,8 +887,8 @@ for (group in 1:12){
     
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
       for(colname in colnames){
-        targRhosAfterPrompt = c()
-        targRhosBeforePrompt = c()
+        rhos_forecast_timesAfterPrompt = c()
+        rhos_forecast_timesBeforePrompt = c()
         for(forecast_time in 1:20){
           simplex_before_prompt1 = block_lnlp(rmsDF, lib = c(1, floor(promptWindow/2)), pred = c(floor(promptWindow/2)+1, promptWindow),
                                             target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
@@ -864,11 +897,11 @@ for (group in 1:12){
           
           simplex_after_prompt = block_lnlp(rmsDF, lib = c(1, promptWindow), pred = c(promptWindow+1, endPoint),
                                        target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-          targRhosAfterPrompt = c(targRhos, simplex_after_prompt$stats$rho$rho)
-          targRhosBeforePrompt = c(targRhosBeforePrompt, simplex_before_prompt1$stats$rho$rho, simplex_before_prompt1$stats$rho$rho)
+          rhos_forecast_timesAfterPrompt = c(rhos_forecast_times, simplex_after_prompt$stats$rho$rho)
+          rhos_forecast_timesBeforePrompt = c(rhos_forecast_timesBeforePrompt, simplex_before_prompt1$stats$rho$rho, simplex_before_prompt1$stats$rho$rho)
         }
-        trialRhoAfterPrompt = trialRhoAfterPrompt + mean(targRhosAfterPrompt)
-        trialRhoBeforePrompt = trialRhoBeforePrompt + mean(targRhosBeforePrompt)
+        trialRhoAfterPrompt = trialRhoAfterPrompt + mean(rhos_forecast_timesAfterPrompt)
+        trialRhoBeforePrompt = trialRhoBeforePrompt + mean(rhos_forecast_timesBeforePrompt)
       }
       trialDataset$rho_after_prompt[idx] = trialRhoAfterPrompt / 3
       
