@@ -1,4 +1,4 @@
-# calc_te() function: returns single number without
+# calc_ete() function: returns single number without
 
 
 #__________________________________________________________________________
@@ -165,13 +165,13 @@ ggplot(data=spectralflatness_timeseries_example, aes(x=seconds)) +
 # TE for trials by computing mean of pairwise TE for each pair in a trial. This will come in handy in RQ2.
 
 # Initialize empty vectors
-rms_TEvalues_pertrial = list()
-spectralflatness_TEvalues_pertrial = list()
-tonnetzdistance_TEvalues_pertrial = list()
-
 rms_TEvalues_perpair = list()
 spectralflatness_TEvalues_perpair = list()
 tonnetzdistance_TEvalues_perpair = list()
+
+rms_TEvalues_pertrial = list()
+spectralflatness_TEvalues_pertrial = list()
+tonnetzdistance_TEvalues_pertrial = list()
 
 # enable parallel processing for all future transfer_entropy calls
 plan(multisession)
@@ -196,9 +196,9 @@ for(group in 1:12){
         rmsTEyx = 0
         
         for(markov_order in 1:20){
-          TExy = calc_te(rms_timeseries[,colname1],
+          TExy = calc_ete(rms_timeseries[,colname1],
                           rms_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-          TEyx = calc_te(rms_timeseries[,colname2],
+          TEyx = calc_ete(rms_timeseries[,colname2],
                           rms_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
           rmsTExy = rmsTExy + TExy
           rmsTEyx = rmsTEyx + TEyx
@@ -218,9 +218,9 @@ for(group in 1:12){
         tonnetzdistanceTEyx = 0
         
         for(markov_order in 1:20){
-          TExy = calc_te(tonnetzdistance_timeseries[,colname1],
+          TExy = calc_ete(tonnetzdistance_timeseries[,colname1],
                                       tonnetzdistance_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-          TEyx = calc_te(tonnetzdistance_timeseries[,colname2],
+          TEyx = calc_ete(tonnetzdistance_timeseries[,colname2],
                                         tonnetzdistance_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
           tonnetzdistanceTExy = tonnetzdistanceTExy + TExy
           tonnetzdistanceTEyx = tonnetzdistanceTEyx + TEyx
@@ -240,9 +240,9 @@ for(group in 1:12){
         spectralflatnessTEyx = 0
         
         for(markov_order in 1:20){
-          TExy = calc_te(spectralflatness_timeseries[,colname1],
+          TExy = calc_ete(spectralflatness_timeseries[,colname1],
                          spectralflatness_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-          TEyx = calc_te(spectralflatness_timeseries[,colname2],
+          TEyx = calc_ete(spectralflatness_timeseries[,colname2],
                          spectralflatness_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
           spectralflatnessTExy = spectralflatnessTExy + TExy
           spectralflatnessTEyx = spectralflatnessTEyx + TEyx
@@ -264,7 +264,6 @@ for(group in 1:12){
       print(sprintf("TE REAL g%s t%s", group, trial))   
   }
 }
-
 
 # RANDOM PAIRS
 # Calculate TE values for 'random pairs' of musicians; i.e., same group, different trial.
@@ -288,9 +287,9 @@ for(group in 1:12){
       rmsTEyx = 0
       
       for(markov_order in 1:20){
-        TExy = calc_te(rms_timeseries[,colname1],
+        TExy = calc_ete(rms_timeseries[,colname1],
                        rms_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-        TEyx = calc_te(rms_timeseries[,colname2],
+        TEyx = calc_ete(rms_timeseries[,colname2],
                        rms_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
         rmsTExy = rmsTExy + TExy
         rmsTEyx = rmsTEyx + TEyx
@@ -306,9 +305,9 @@ for(group in 1:12){
       tonnetzdistanceTEyx = 0
       
       for(markov_order in 1:20){
-        TExy = calc_te(tonnetzdistance_timeseries[,colname1],
+        TExy = calc_ete(tonnetzdistance_timeseries[,colname1],
                        tonnetzdistance_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-        TEyx = calc_te(tonnetzdistance_timeseries[,colname2],
+        TEyx = calc_ete(tonnetzdistance_timeseries[,colname2],
                        tonnetzdistance_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
         tonnetzdistanceTExy = tonnetzdistanceTExy + TExy
         tonnetzdistanceTEyx = tonnetzdistanceTEyx + TEyx
@@ -325,9 +324,9 @@ for(group in 1:12){
       spectralflatnessTEyx = 0
       
       for(markov_order in 1:20){
-        TExy = calc_te(spectralflatness_timeseries[,colname1],
+        TExy = calc_ete(spectralflatness_timeseries[,colname1],
                        spectralflatness_timeseries[,colname2], lx=markov_order, ly=markov_order, seed=TRUE)
-        TEyx = calc_te(spectralflatness_timeseries[,colname2],
+        TEyx = calc_ete(spectralflatness_timeseries[,colname2],
                        spectralflatness_timeseries[,colname1], lx=markov_order, ly=markov_order, seed=TRUE)
         spectralflatnessTExy = spectralflatnessTExy + TExy
         spectralflatnessTEyx = spectralflatnessTEyx + TEyx
@@ -549,6 +548,7 @@ spectralflatness_rhovalues_raw = unname(unlist(spectralflatness_rhovalues))
 # RQ1a
 
 # Test for normality
+
 shapiro.test(rms_TEvalues_raw)
 
 mean(rms_TEvalues_raw)
@@ -803,9 +803,9 @@ for(group in 1:12) {
         rmsTEyx = 0
         
         for(markov_order in 1:20){
-          TExy = calc_te(rms_timeseries[,colname1][promptWindow:endPoint],
+          TExy = calc_ete(rms_timeseries[,colname1][promptWindow:endPoint],
                          rms_timeseries[,colname2][promptWindow:endPoint], lx=markov_order, ly=markov_order, seed=TRUE)
-          TEyx = calc_te(rms_timeseries[,colname2][promptWindow:endPoint],
+          TEyx = calc_ete(rms_timeseries[,colname2][promptWindow:endPoint],
                          rms_timeseries[,colname1][promptWindow:endPoint], lx=markov_order, ly=markov_order, seed=TRUE)
           rmsTExy = rmsTExy + TExy
           rmsTEyx = rmsTEyx + TEyx
@@ -1044,7 +1044,6 @@ RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
 
 View(RQ4_pair_df)
 
-
 # RQ4a
 RQ4a = lm(sqrt(directionality_ratio_after_prompt) ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$directionality_ratio_after_prompt),])
 summary(step(RQ4a, direction = "both"))
@@ -1054,12 +1053,12 @@ hist(sqrt(RQ4_pair_df$directionality_ratio_after_prompt))
 
 RQ4_pair_df[RQ4_pair_df$from=="g1_t3_b1",]$individual_predictability_full
 
-# RQ5a
+# RQ4b
 RQ4b = lm(individual_predictability_change ~ relevel(from_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$individual_predictability_change),])
 summary(step(RQ4b, direction = "both"))
 summary(RQ4b)
 
-# RQ5b
+# RQ4c
 RQ4c = lm(TE_pair_full ~ individual_predictability_full, RQ4_pair_df)
 summary(step(RQ4c, direction = "both"))
 summary(RQ4c)
