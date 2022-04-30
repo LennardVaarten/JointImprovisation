@@ -1044,6 +1044,7 @@ RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
 
 View(RQ4_pair_df)
 
+
 # RQ4a
 RQ4a = lm(sqrt(directionality_ratio_after_prompt) ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$directionality_ratio_after_prompt),])
 summary(step(RQ4a, direction = "both"))
