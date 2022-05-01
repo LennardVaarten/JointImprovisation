@@ -878,35 +878,40 @@ for (group in 1:12){
     
     rmsDF = cbind(rms_timeseries[colnames[1]], rms_timeseries[colnames[2]], rms_timeseries[colnames[3]])
     
-    trialRhoAfterPrompt = 0
-    trialRhoBeforePrompt = 0
+    trialRhoAfterPrompt = c()
+    trialRhoBeforePrompt = c()
     
+    # again, select only those trials with at least 10 s of performance after the prompt
     if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
       for(colname in colnames){
         rhos_forecast_timesAfterPrompt = c()
         rhos_forecast_timesBeforePrompt = c()
         for(forecast_time in 1:20){
+          # calculate the pre-prompt Rho using Simplex algorithm twice: first predicting 2nd half of performance based
+          # on 1st half, then predicting 1st half based on second half
           simplex_before_prompt1 = block_lnlp(rmsDF, lib = c(1, floor(promptWindow/2)), pred = c(floor(promptWindow/2)+1, promptWindow),
                                             target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
           simplex_before_prompt2 = block_lnlp(rmsDF, lib = c(floor(promptWindow/2)+1, promptWindow), pred = c(1, floor(promptWindow/2)),
                                              target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
-          
+          # calculate post-prompt Rho using everything before the prompt as the manifold
           simplex_after_prompt = block_lnlp(rmsDF, lib = c(1, promptWindow), pred = c(promptWindow+1, endPoint),
                                        target_column = colname, tp = forecast_time, stats_only = FALSE, first_column_time = FALSE, silent = TRUE)
           rhos_forecast_timesAfterPrompt = c(rhos_forecast_times, simplex_after_prompt$stats$rho$rho)
           rhos_forecast_timesBeforePrompt = c(rhos_forecast_timesBeforePrompt, simplex_before_prompt1$stats$rho$rho, simplex_before_prompt1$stats$rho$rho)
         }
-        trialRhoAfterPrompt = trialRhoAfterPrompt + mean(rhos_forecast_timesAfterPrompt)
-        trialRhoBeforePrompt = trialRhoBeforePrompt + mean(rhos_forecast_timesBeforePrompt)
+        trialRhoAfterPrompt = c(trialRhoAfterPrompt, mean(rhos_forecast_timesAfterPrompt))
+        trialRhoBeforePrompt = c(trialRhoBeforePrompt, mean(rhos_forecast_timesBeforePrompt))
       }
-      trialDataset$rho_after_prompt[idx] = trialRhoAfterPrompt / 3
+      # add to DF
+      trialDataset$rho_after_prompt[idx] = mean(trialRhoAfterPrompt)
+      trialDataset$rho_before_prompt[idx] = mean(trialRhoBeforePrompt)
     }
   }
   # Logging
   print(sprintf("EDM ENDINGS g%s", group))
 }
 
-
+# Get raw values
 trialDataset$TE_after_prompt = unlist(trialDataset$TE_after_prompt)
 trialDataset$rho_after_prompt = unlist(trialDataset$rho_after_prompt)
 
@@ -916,15 +921,16 @@ trialDataset$rho_after_prompt = unlist(trialDataset$rho_after_prompt)
 
 #_____________________________________________________________________________________
 
-View(listenerDataset)
-
+# Turn into factor variables
 trialDataset$type = factor(trialDataset$type)
 trialDataset$trio = factor(trialDataset$trio)
 
 # RQ3a
 RQ3a.full = lmer(log(TE_after_prompt) ~ number + type + number:type + (1|trio),
               trialDataset[!is.na(trialDataset$TE_after_prompt),])
+# Use step function to find best fitting model
 step(RQ3a.full, direction = "both")
+# Save best fitting model
 RQ3a.final = lmer(log(TE_after_prompt) ~ number + type + (1|trio), 
                   trialDataset[!is.na(trialDataset$TE_after_prompt),])
 summary(RQ3a.final)
@@ -937,6 +943,7 @@ RQ3b.final = lmer(rho_after_prompt ~ number + (1|trio),
                   trialDataset[!is.na(trialDataset$rho_after_prompt),])
 summary(RQ3b.final)
 
+# Compare means
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 1])
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
 mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
@@ -954,6 +961,7 @@ mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trial
 
 #_____________________________________________________________________________________
 
+# Initialize empty vectors
 from = c()
 to = c()
 from_prompt = c()
@@ -962,19 +970,20 @@ TE_pair_full = c()
 TE_pair_afterprompt = c()
 directionality_afterprompt = c()
 
+# Cast to factor variable
 musicianDataset$booth = factor(musicianDataset$booth)
 levels(musicianDataset$booth) = c(1,2,3)
-
-View(musicianDataset)
 
 for(group in 1:12) {
   for(trial in 1:16) {
     pairs = combn(c(1:3), m=2)
     for(pair in 1:3){
       
+      # What prompt did each of the musicians in the pair hear?
       prompt_heard_1 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[1,pair],]$prompt_heard
       prompt_heard_2 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[2,pair],]$prompt_heard
       
+      # CHECK LATER
       if (length(prompt_heard_1) != 0 & length(prompt_heard_2) != 0){
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
         colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
@@ -982,9 +991,11 @@ for(group in 1:12) {
         to = c(to, colname2, colname1)
         from_prompt = c(from_prompt, prompt_heard_1, prompt_heard_2)
         to_prompt = c(to_prompt, prompt_heard_2, prompt_heard_1)
+        # Retrieve pairwise TE for the full performance, for RQ4c
         TE_pair_full = c(TE_pair_full,
                          rms_TEvalues_perpair[sprintf("%s-%s", colname1, colname2)], 
                          rms_TEvalues_perpair[sprintf("%s-%s", colname2, colname1)])
+        # Retrieve post-prompt pairwise TE, for use in RQ4a
         TE_pair_afterprompt = c(TE_pair_afterprompt, 
                                  TE_perpair_after_prompt[sprintf("%s-%s", colname1, colname2)],
                                  TE_perpair_after_prompt[sprintf("%s-%s", colname2, colname1)])
@@ -993,16 +1004,18 @@ for(group in 1:12) {
   }
 }
 
+# Create dataframe with the new variables
 RQ4_pair_df = data.frame(from = from)
-
 RQ4_pair_df$to = to
 RQ4_pair_df$TE_pair_full = TE_pair_full
-RQ4_pair_df$TE_pair_afterprompt = TE_pair_afterprompt # a[sapply(a, is.null)] <- NA
+RQ4_pair_df$TE_pair_afterprompt = TE_pair_afterprompt 
 RQ4_pair_df$from_prompt = from_prompt
 RQ4_pair_df$to_prompt = to_prompt
 RQ4_pair_df$directionality_ratio_after_prompt = rep(NA, nrow(RQ4_pair_df))
 
 for(row in 1:nrow(RQ4_pair_df)){
+  # Only add post-prompt directionality ratio to DF once per pair. Adding this twice for one pair
+  # twice for a pair (so g1_t1_b1-->g1_t1_b2 AND g1_t1_b2-->g1_t1_b1) would not add any information.
   if(row%%2==1){
     if(length(unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])))!=0){
       RQ4_pair_df$directionality_ratio_after_prompt[row] = unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])) / unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row+1]))
@@ -1010,28 +1023,33 @@ for(row in 1:nrow(RQ4_pair_df)){
   }
 }
 
+# get raw numeric values
 for(col in names(RQ4_pair_df)){
   RQ4_pair_df[col] = unlist(RQ4_pair_df[col])
 }
 
+# Add columns for change in individual (i.e. per musician) predictability following the prompt,
+# and for individual predictability during the full trial
 RQ4_pair_df$individual_predictability_change = rep(NA, nrow(RQ4_pair_df))
 RQ4_pair_df$individual_predictability_full = rep(NA, nrow(RQ4_pair_df))
 
 for(group in c(1:12)){
   for (trial in c(1:16)){
+    # Retrieve info from trial
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
     promptTime = trialDataset$promptTime[idx]
     promptWindow = ceiling(promptTime / windowSizeInSeconds)
     endPoint = endPoints[[sprintf("g%s_t%s", group, trial)]]
     
-    colname1 = sprintf("g%s_t%s_b1", group, trial)
-    colname2 = sprintf("g%s_t%s_b2", group, trial)
-    colname3 = sprintf("g%s_t%s_b3", group, trial)
-    colnames = c(colname1, colname2, colname3)
+    colnames = c(sprintf("g%s_t%s_b1", group, trial), 
+                 sprintf("g%s_t%s_b2", group, trial), 
+                 sprintf("g%s_t%s_b3", group, trial))
     
-    rmsDF = cbind(rms_timeseries[colname1], rms_timeseries[colname2], rms_timeseries[colname3])
+    rmsDF = cbind(rms_timeseries[colnames[1]], rms_timeseries[colnames[2]], rms_timeseries[colnames[3]])
     
     if(nrow(RQ4_pair_df[RQ4_pair_df$from == colname1,]) > 0){
+      # Calculate individual predictability for each musician, using only their own playing as the
+      # state space history
       for(colname in colnames){
         total_rho = c()
         ts = unlist(rms_timeseries[colname])
@@ -1045,6 +1063,10 @@ for(group in c(1:12)){
         RQ4_pair_df[match(colname, RQ4_pair_df$from),]$individual_predictability_full = mean(total_rho)
       }
       
+      # For musicians in trials that continued for at least 10 seconds after prompt, calculate
+      # the factor with which their individual predictability changed following the prompt. 
+      # For this, we need to calculate their pre-prompt Rho and post-prompt Rho, and then calculate the 
+      # difference between these two as a percentage.
       if (!(promptWindow %in% c(0, NA)) & endPoint - promptWindow >= round(10/windowSizeInSeconds)) {
         for(colname in colnames){
           total_rho_after_prompt = c()
@@ -1062,14 +1084,18 @@ for(group in c(1:12)){
       }
     }
   }
+  # Logging
   print(sprintf("Rho calculated for %s", group))
 }
 
+# Turn into factors
 RQ4_pair_df$from_prompt = factor(RQ4_pair_df$from_prompt)
 RQ4_pair_df$to_prompt = factor(RQ4_pair_df$to_prompt)
+# Add trio to DF (CHECK LATER)
 RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
 
 # RQ4a
+# Use square root transformation, because residuals highly non-normal (CHECK LATER)
 RQ4a = lm(sqrt(directionality_ratio_after_prompt) ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$directionality_ratio_after_prompt),])
 summary(step(RQ4a, direction = "both"))
 summary(RQ4a)
