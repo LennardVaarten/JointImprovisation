@@ -169,8 +169,8 @@ tonnetzdistance_TEvalues_pertrial = list()
 # Enable parallel processing for all calc_ete() calls
 plan(multisession)
 
-for(group in c(2)){
-  for(trial in 11:16){
+for(group in c(3)){
+  for(trial in 4:12){
       # Get all combinations of booths: booth 1-2, booth 1-3, booth 2-3
       pairs = combn(c(1:3), m=2)
       
@@ -268,7 +268,7 @@ for(group in c(2)){
   }
 }
 
-rms_TEvalues_pertrial
+
 # RANDOM PAIRS
 # Calculate TE values for 'random pairs' of musicians; i.e., same group, different trial.
 
@@ -276,7 +276,7 @@ rms_TEvalues_random = c()
 spectralflatness_TEvalues_random = c()
 tonnetzdistance_TEvalues_random = c()
 
-for(group in c(1)){
+for(group in c(2)){
   for(trial in 1:16){
     pairs = combn(c(1:3), m=2)
     for(pair in 1:3){
@@ -343,9 +343,9 @@ for(group in c(1)){
       spectralflatness_TEvalues_random = c(spectralflatness_TEvalues_random, spectralflatnessTExy, spectralflatnessTEyx)
       
     }
+    # Logging
+    print(sprintf("TE RANDOM g%s t%s", group, trial))
   }
-  # Logging
-  print(sprintf("TE RANDOM g%s", group))
 }
 
 # Get just the values from each key-value pair in the list, so that we can perform our statistical tests
@@ -811,8 +811,8 @@ trialDataset$unidirectionality_index_after_prompt = c(rep(NA, nrow(trialDataset)
 # Initialize empty list of pairwise post-prompt TE values
 TE_perpair_after_prompt = list()
 
-for(group in 1:12) {
-  for(trial in 1:16) {
+for(group in c(1)) {
+  for(trial in 1:4) {
     # Get info about the current trial
     idx = which(trialDataset$trio == group & trialDataset$take == trial)
     promptTime = trialDataset$promptTime[idx]
@@ -858,6 +858,8 @@ for(group in 1:12) {
   # Logging
   print(sprintf("TE ENDINGS g%s", group))
 }
+
+
 
 trialDataset$rho_after_prompt = c(rep(NA, nrow(trialDataset)))
 trialDataset$rho_change = c(rep(NA, nrow(trialDataset)))
