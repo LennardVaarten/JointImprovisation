@@ -46,10 +46,6 @@ listenerDataset = read.csv("C:/Shortcutsensei/JointImprovisation/Data/Appreciati
 
 windowSizeInSeconds = (1/22050) * 3520
 
-View(musicianDataset)
-View(trialDataset)
-View(listenerDataset)
-
 #_____________________________________________________________________________________
 
 # Further preprocessing of Tonnetz data ----------------------------------------------
@@ -173,8 +169,8 @@ tonnetzdistance_TEvalues_pertrial = list()
 # Enable parallel processing for all calc_ete() calls
 plan(multisession)
 
-for(group in 1:12){
-  for(trial in 1:16){
+for(group in c(2)){
+  for(trial in 11:16){
       # Get all combinations of booths: booth 1-2, booth 1-3, booth 2-3
       pairs = combn(c(1:3), m=2)
       
@@ -272,6 +268,7 @@ for(group in 1:12){
   }
 }
 
+rms_TEvalues_pertrial
 # RANDOM PAIRS
 # Calculate TE values for 'random pairs' of musicians; i.e., same group, different trial.
 
@@ -279,7 +276,7 @@ rms_TEvalues_random = c()
 spectralflatness_TEvalues_random = c()
 tonnetzdistance_TEvalues_random = c()
 
-for(group in 1:12){
+for(group in c(1)){
   for(trial in 1:16){
     pairs = combn(c(1:3), m=2)
     for(pair in 1:3){
@@ -1072,9 +1069,6 @@ RQ4_pair_df$from_prompt = factor(RQ4_pair_df$from_prompt)
 RQ4_pair_df$to_prompt = factor(RQ4_pair_df$to_prompt)
 RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
 
-View(RQ4_pair_df)
-
-
 # RQ4a
 RQ4a = lm(sqrt(directionality_ratio_after_prompt) ~ relevel(from_prompt, ref="No-Goal") + relevel(to_prompt, ref="No-Goal"), RQ4_pair_df[!is.na(RQ4_pair_df$directionality_ratio_after_prompt),])
 summary(step(RQ4a, direction = "both"))
@@ -1093,8 +1087,4 @@ summary(RQ4b)
 RQ4c = lm(TE_pair_full ~ individual_predictability_full, RQ4_pair_df)
 summary(step(RQ4c, direction = "both"))
 summary(RQ4c)
-
-
-# save for later
-# RQ4_pair_df[match(unique(RQ4_pair_df$from), RQ4_pair_df$from),]
 
