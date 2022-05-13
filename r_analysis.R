@@ -269,8 +269,8 @@ plot(char_time_rho, type='b', pch=19, ylab=
 
 format(Sys.time(), "%X")
 
-for(group in c(6)){
-  for(trial in 1:12){
+for(group in c(7)){
+  for(trial in 4:16){
       # Get all combinations of booths: booth 1-2, booth 1-3, booth 2-3
       pairs = combn(c(1:3), m=2)
       
