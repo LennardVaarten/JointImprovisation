@@ -375,9 +375,7 @@ lapply(rms_TEvalues_pertrial, write, "C:/Shortcutsensei/JointImprovisation/scrip
 lapply(tonnetzdistance_TEvalues_perpair, write, "C:/Shortcutsensei/JointImprovisation/scripts/tonnetzdistance_TEvalues_perpair.txt", append=TRUE)
 lapply(tonnetzdistance_TEvalues_pertrial, write, "C:/Shortcutsensei/JointImprovisation/scripts/tonnetzdistance_TEvalues_pertrial.txt", append=TRUE)
 lapply(spectralflatness_TEvalues_perpair, write, "C:/Shortcutsensei/JointImprovisation/scripts/spectralflatness_TEvalues_perpair.txt", append=TRUE)
-lapply(spectralflatness_TEvalues_pertrial, write, "C:/Shortcutsensei/JointImprovisation/scripts/tonnetzdistance_TEvalues_pertrial.txt", append=TRUE)
-
-rms_TEvalues_random
+lapply(spectralflatness_TEvalues_pertrial, write, "C:/Shortcutsensei/JointImprovisation/scripts/spectralflatness_TEvalues_pertrial.txt", append=TRUE)
 
 # RANDOM PAIRS
 # Calculate TE values for 'random pairs' of musicians; i.e., same group, different trial.
