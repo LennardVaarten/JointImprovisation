@@ -8,6 +8,8 @@
 # Turn off scientific notation
 options(scipen=999)
 
+dev.off()
+
 # Installing libraries
 install.packages("ggplot2")
 install.packages("RTransferEntropy")
@@ -21,6 +23,8 @@ install.packages("future")
 install.packages("performance")
 install.packages("stringr")
 install.packages("tidyr")
+install.packages("sjPlot")
+install.packages("effects")
 
 library(ggplot2)
 library(RTransferEntropy)
@@ -34,6 +38,8 @@ library(future)
 library(performance)
 library(stringr)
 library(tidyr)
+library(sjPlot)
+library(effects)
 
 # Importing libraries
 # Importing our sliding window-averaged data
@@ -114,8 +120,8 @@ ggplot(data=rms_timeseries_example, aes(x=seconds)) +
   geom_line(aes(y=b1), color="steelblue") +
   geom_line(aes(y=b2), color="red") +
   geom_line(aes(y=b3), color="black") +
-  ylab("RMS Amplitude") +
-  theme(plot.title = element_text(hjust = 0.5))
+  ylab("RMS amplitude") +
+  theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 22))
 
 # Tonnetz distance
 tonnetzdistance_timeseries_example_b1 = tonnetzdistance_timeseries$g1_t1_b1[!is.na(tonnetzdistance_timeseries$g1_t1_b1)]
@@ -130,8 +136,8 @@ ggplot(data=tonnetzdistance_timeseries_example, aes(x=seconds)) +
   geom_line(aes(y=b1), color="steelblue") +
   geom_line(aes(y=b2), color="red") +
   geom_line(aes(y=b3), color="black") +
-  ylab("Tonnetz Distance") +
-  theme(plot.title = element_text(hjust = 0.5))
+  ylab("Tonnetz distance") +
+  theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 22))
 
 # Spectral flatness
 spectralflatness_timeseries_example_b1 = spectralflatness_timeseries$g1_t1_b1[!is.na(spectralflatness_timeseries$g1_t1_b1)]
@@ -146,8 +152,8 @@ ggplot(data=spectralflatness_timeseries_example, aes(x=seconds)) +
   geom_line(aes(y=b1), color="steelblue") +
   geom_line(aes(y=b2), color="red") +
   geom_line(aes(y=b3), color="black") +
-  ylab("Spectral Flatness") +
-  theme(plot.title = element_text(hjust = 0.5))
+  ylab("Spectral flatness") +
+  theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 22))
 
 #_____________________________________________________________________________________
 
@@ -716,17 +722,20 @@ sd(rms_TEvalues_random_pertrial)
 wilcox.test(rms_TEvalues_raw, rms_TEvalues_random_pertrial)
 
 # Plot the relationship
-RQ1a_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random)
-names(RQ1a_df) = c("RMS TE real", "RMS TE random")
-RQ1a_df = gather(RQ1a_df)
-ggplot(RQ1a_df, aes(x=value, y=key)) + 
+# 773 * 657
+
+RQ1a.1_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random_pertrial)
+names(RQ1a.1_df) = c("RMS ETE real", "RMS ETE random")
+RQ1a.1_df = gather(RQ1a.1_df)
+ggplot(RQ1a.1_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("Transfer Entropy") +
-  ylab("real-random") +
+  xlab("ETE") +
+  ylab("Random-real") +
   stat_summary(fun = "mean",
                geom = "point", 
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 15))
 
 # Tonnetz distance TE
 qqnorm(tonnetzdistance_TEvalues_raw)
@@ -738,17 +747,18 @@ sd(tonnetzdistance_TEvalues_random)
 
 wilcox.test(tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random_pertrial)
 
-RQ1b_df = data.frame(tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random)
-names(RQ1b_df) = c("Tonnetz distance TE real", "Tonnetz distance TE random")
-RQ1b_df = gather(RQ1b_df)
-ggplot(RQ1b_df, aes(x=value, y=key)) + 
+RQ1a.2_df = data.frame(tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random_pertrial)
+names(RQ1a.2_df) = c("Tonnetz dist. ETE real", "Tonnetz dist. ETE random")
+RQ1a.2_df = gather(RQ1a.2_df)
+ggplot(RQ1a.2_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("Transfer Entropy") +
-  ylab("real-random") +
+  xlab("ETE") +
+  ylab("Random-real") +
   stat_summary(fun = "mean",
                geom = "point", 
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 17))
 
 # Spectral flatness TE
 qqnorm(spectralflatness_TEvalues_raw)
@@ -760,17 +770,18 @@ sd(spectralflatness_TEvalues_random_pertrial)
 
 wilcox.test(spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random_pertrial)
 
-RQ1c_df = data.frame(spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random)
-names(RQ1c_df) = c("Spectral flatness TE real", "Spectral flatness TE random")
-RQ1c_df = gather(RQ1c_df)
-ggplot(RQ1c_df, aes(x=value, y=key)) + 
+RQ1a.3_df = data.frame(spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random_pertrial)
+names(RQ1a.3_df) = c("Spectral fltn. ETE real", "Spectral fltn. ETE random")
+RQ1a.3_df = gather(RQ1a.3_df)
+ggplot(RQ1a.3_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("Transfer Entropy") +
-  ylab("real-random") +
+  xlab("ETE") +
+  ylab("Random-real") +
   stat_summary(fun = "mean",
                geom = "point", 
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 17))
 
 # RQ1b - same as before, but now with rho values
 
@@ -784,17 +795,18 @@ sd(rms_rhovalues_random)
 
 wilcox.test(rms_rhovalues_raw, rms_rhovalues_random)
 
-RQ1d_df = data.frame(rms_rhovalues_raw, rms_rhovalues_random)
-names(RQ1d_df) = c("RMS rho real", "RMS rho random")
-RQ1d_df = gather(RQ1d_df)
-ggplot(RQ1d_df, aes(x=value, y=key)) + 
+RQ1b.1_df = data.frame(rms_rhovalues_raw, rms_rhovalues_random)
+names(RQ1b.1_df) = c("RMS rho real", "RMS rho random")
+RQ1b.1_df = gather(RQ1b.1_df)
+ggplot(RQ1b.1_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("rho") +
-  ylab("real-random") +
+  xlab("Rho") +
+  ylab("Random-real") +
   stat_summary(fun = "mean",
                geom = "point", 
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 17))
 
 # Tonnetz distance rho
 qqnorm(tonnetzdistance_rhovalues_raw)
@@ -806,17 +818,18 @@ sd(tonnetzdistance_rhovalues_random)
 
 wilcox.test(tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random)
 
-RQ1e_df = data.frame(tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random)
-names(RQ1e_df) = c("Tonnetz distance rho real", "Tonnetz distance rho random")
-RQ1e_df = gather(RQ1e_df)
-ggplot(RQ1e_df, aes(x=value, y=key)) + 
+RQ1b.2_df = data.frame(tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random)
+names(RQ1b.2_df) = c("Tonnetz dist. rho real", "Tonnetz dist. rho random")
+RQ1b.2_df = gather(RQ1b.2_df)
+ggplot(RQ1b.2_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("rho") +
-  ylab("real-random") +
+  xlab("Rho") +
+  ylab("Random-real") +
   stat_summary(fun = "mean",
                geom = "point", 
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 17))
 
 # Spectral flatness rho
 qqnorm(spectralflatness_rhovalues_raw)
@@ -828,17 +841,18 @@ sd(spectralflatness_rhovalues_random)
 
 wilcox.test(spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
 
-RQ1f_df = data.frame(spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
-names(RQ1f_df) = c("Spectral flatness rho real", "Spectral flatness rho random")
-RQ1f_df = gather(RQ1f_df)
-ggplot(RQ1f_df, aes(x=value, y=key)) + 
+RQ1b.3_df = data.frame(spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
+names(RQ1b.3_df) = c("Spectral fltn. rho real", "Spectral fltn. rho random")
+RQ1b.3_df = gather(RQ1b.3_df)
+ggplot(RQ1b.3_df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
-  xlab("rho") +
-  ylab("real-random") + 
+  xlab("Rho") +
+  ylab("Random-real") + 
   stat_summary(fun = "mean",
                geom = "point",
-               colour = "black")
+               colour = "black") +
+  theme(legend.position="none", text = element_text(size = 17))
 
 #_____________________________________________________________________________________
 
@@ -889,12 +903,6 @@ for (row in 1:nrow(trialDataset)){
   trialDataset$unidirectionality_index_full[row] = mean(unidirectionality_indices)
 }
 
-max(trialDataset$unidirectionality_index_full)
-
-trialDataset$unidirectionality_index_full_bin = ntile(trialDataset$unidirectionality_index_full, n=10)
-trialDataset$TE_rms_full_bin = ntile(trialDataset$TE_rms_full, n=10)
-trialDataset$rho_rms_full_bin = ntile(trialDataset$rho_rms_full, n=192)
-
 # Get data in suitable format for statistical testing
 trialDataset$TE_full = unlist(trialDataset$TE_full)
 trialDataset$rho_full = unlist(trialDataset$rho_full)
@@ -909,10 +917,11 @@ trialDataset$TE_rms_full_scaled = scale(trialDataset$TE_rms_full)
 # Does the amount of information flow predict subjective quality of improvisations?
 RQ2.1 = lmer(goodImproAll ~ TE_rms_full + rho_rms_full + unidirectionality_index_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
+
 summary(RQ2.1)
 check_model(RQ2.1)
 
-RQ2.2 = lmer(goodImproAll ~ rho_rms_full + unidirectionality_index_full + (1|trio),
+RQ2.2 = lmer(goodImproAll ~ rho_rms_full + TE_rms_full + (1|trio),
             trialDataset[trialDataset$take > 4,])
 summary(RQ2.2)
 
@@ -922,66 +931,61 @@ RQ2.3 = lmer(goodImproAll ~ rho_rms_full + (1|trio),
              trialDataset[trialDataset$take > 4,])
 summary(RQ2.3)
 
-anova(RQ2.2, RQ2.3)
-plot(compare_performance(RQ2.2, RQ2.3))
-
-RQ2.4 = lmer(goodImproAll ~ (1|trio),
-             trialDataset[trialDataset$take > 4,])
+compare_performance(RQ2.1, RQ2.2, RQ2.3)
 
 anova(RQ2.3, RQ2.4)
 plot(compare_performance(RQ2.3, RQ2.4))
 
+compare_performance(RQ2.3, RQ2.4)
+
 View(trialData)
 # Plot the relationship
-RQ2a_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full_bin)
-RQ2a_df = RQ2a_df[complete.cases(RQ2a_df),]
-names(RQ2a_df) = c("Subjective_Quality", "Transfer_Entropy")
-RQ2a_df$predlmer = predict(RQ2a)
-ggplot(RQ2a_df, aes(x=Transfer_Entropy, y=Subjective_Quality)) + 
+RQ2.1_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full_bin)
+RQ2.1_df = RQ2a_df[complete.cases(RQ2.1_df),]
+names(RQ2.1_df) = c("Subjective_Quality", "Transfer_Entropy")
+RQ2.1_df$predlmer = predict(RQ2.1)
+ggplot(RQ2.1_df, aes(x=Transfer_Entropy, y=Subjective_Quality)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7))
 
-# Check if model meets assumptions of linear mixed effects models
-check_model(RQ2a)
 
-compare_performance(RQ2a, RQ2b, RQ2c)
+RQ2TE = lmer(goodImproAll ~ TE_rms_full + (1|trio),
+             trialDataset[trialDataset$take > 4,])
+RQ2TE_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$TE_rms_full)
+RQ2TE_df = RQ2TE_df[complete.cases(RQ2TE_df),]
+names(RQ2TE_df) = c("Subjective_Quality", "ETE")
+RQ2TE_df$predlmer = predict(RQ2TE)
 
-# RQ2b
-# Does directionality of information flow predict subjective quality of improvisations?
-RQ2b = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
-            trialDataset[trialDataset$take > 4,])
-summary(RQ2b)
-
-RQ2b_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full)
-RQ2b_df = RQ2b_df[complete.cases(RQ2b_df),]
-names(RQ2b_df) = c("Musician_Appreciation", "Unidirectionality_Index")
-RQ2b_df$predlmer = predict(RQ2b)
-
-ggplot(RQ2b_df, aes(x=Unidirectionality_Index, y=Musician_Appreciation)) + 
-  geom_point(na.rm=TRUE) +
-  scale_y_continuous(breaks=seq(1,7)) +
-  geom_smooth(aes(y = predlmer), size = 1) 
-
-check_model(RQ2b)
-
-# RQ2c
-# Does group-level predictability predict subjective quality of improvisations?
-RQ2c = lmer(goodImproAll ~ rho_full + (1|trio),
-            trialDataset[trialDataset$take > 4,])
-summary(RQ2c)
-
-RQ2c_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$rho_rms_full)
-RQ2c_df = RQ2c_df[complete.cases(RQ2c_df),]
-names(RQ2c_df) = c("Subjective_Quality", "Rho")
-RQ2c_df$predlmer = predict(RQ2c)
-
-ggplot(RQ2c_df, aes(x=Rho, y=Subjective_Quality)) + 
+ggplot(RQ2TE_df, aes(x=ETE, y=Subjective_Quality)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
-  scale_y_continuous(breaks=seq(1,7))
+  scale_y_continuous(breaks=seq(1,7)) + 
+  theme(text = element_text(size = 22))
 
-check_model(RQ2c)
+RQ2Uni = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
+             trialDataset[trialDataset$take > 4,])
+RQ2Uni_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full)
+RQ2Uni_df = RQ2Uni_df[complete.cases(RQ2Uni_df),]
+names(RQ2Uni_df) = c("Subjective_Quality", "Unidirectionality_Index")
+RQ2Uni_df$predlmer = predict(RQ2Uni)
+
+ggplot(RQ2Uni_df, aes(x=Unidirectionality_Index, y=Subjective_Quality)) + 
+  geom_point(na.rm=TRUE) +
+  geom_smooth(aes(y = predlmer), size = 1) +
+  scale_y_continuous(breaks=seq(1,7)) + 
+  theme(text = element_text(size = 22))
+
+RQ2Rho_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$rho_rms_full)
+RQ2Rho_df = RQ2Rho_df[complete.cases(RQ2Rho_df),]
+names(RQ2Rho_df) = c("Subjective_Quality", "Rho")
+RQ2Rho_df$predlmer = predict(RQ2.3)
+
+ggplot(RQ2Rho_df, aes(x=Rho, y=Subjective_Quality)) + 
+  geom_point(na.rm=TRUE) +
+  geom_smooth(aes(y = predlmer), size = 1) +
+  scale_y_continuous(breaks=seq(1,7)) + 
+  theme(text = element_text(size = 22))
 
 #_____________________________________________________________________________________
 
@@ -1128,27 +1132,73 @@ trialDataset$type = factor(trialDataset$type)
 trialDataset$trio = factor(trialDataset$trio)
 
 # RQ3a
-RQ3a.full = lmer(TE_after_prompt ~ number + type + number:type + (1|trio),
+RQ3a.1 = lmer(sqrt(TE_after_prompt) ~ number + type + number:type + (1|trio),
               trialDataset[!is.na(trialDataset$TE_after_prompt),])
-# Use step function to find best fitting model
+summary(RQ3a.1)
+
+RQ3a.2 = lmer(sqrt(TE_after_prompt) ~ type + number:type + (1|trio),
+              trialDataset[!is.na(trialDataset$TE_after_prompt),])
+summary(RQ3a.2)
+
+
+RQ3a.3 = lmer(sqrt(TE_after_prompt) ~ type + (1|trio),
+              trialDataset[!is.na(trialDataset$TE_after_prompt),])
+summary(RQ3a.3)
+
+compare_performance(RQ3a.1, RQ3a.2, RQ3a.3)
+
+
+trialDataset[trialDataset$type==1, "TE_after_prompt"]
+
+RQ3a_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random)
+names(RQ1a_df) = c("RMS TE real", "RMS TE random")
+RQ1a_df = gather(RQ1a_df)
+ggplot(RQ1a_df, aes(x=value, y=key)) + 
+  geom_violin() +
+  coord_flip() +
+  xlab("Transfer Entropy") +
+  ylab("Random-real") +
+  stat_summary(fun = "mean",
+               geom = "point", 
+               colour = "black")
+
+effects_RQ3a.3 <- as.data.frame(effect(term="type", mod=RQ3a.3))
+urchin_plot <- ggplot() + 
+  geom_point(data=trialDataset[!is.na(trialDataset$TE_after_prompt),], aes(type, sqrt(TE_after_prompt))) + 
+  geom_point(data=effects_RQ3a.3, aes(x=type, y=fit), color="blue") +
+  geom_line(data=effects_RQ3a.3, aes(x=type, y=fit), color="blue") +
+  geom_ribbon(data= effects_RQ3a.3, aes(x=type, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") +
+  labs(x="Urchins (centered & scaled)", y="Coral Cover")
+urchin_plot
+
 step(RQ3a.full, direction = "both")
 # Save best fitting model
-RQ3a.final = lmer(TE_after_prompt ~ number + type + (1|trio), 
+RQ3a.final = lmer(TE_after_prompt ~ type + (1|trio), 
                   trialDataset[!is.na(trialDataset$TE_after_prompt),])
 summary(RQ3a.final)
 
+compare_performance(RQ3a.full, RQ3a.final)
+
+View(musicianDataset)
+
 # RQ3b
-RQ3b.full = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
+RQ3b.1 = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
                  trialDataset[!is.na(trialDataset$rho_after_prompt),])
-step(RQ3b.full, direction = "both")
-RQ3b.final = lmer(rho_after_prompt ~ number + (1|trio), 
-                  trialDataset[!is.na(trialDataset$rho_after_prompt),])
-summary(RQ3b.final)
+summary(RQ3b.1)
+
+qqnorm(residuals(RQ3b.1))
+
+RQ3b.2 = lmer(rho_after_prompt ~ number + type + (1|trio), 
+              trialDataset[!is.na(trialDataset$rho_after_prompt),])
+summary(RQ3b.2)
+
+RQ3b.3 = lmer(rho_after_prompt ~ number + (1|trio), 
+              trialDataset[!is.na(trialDataset$rho_after_prompt),])
+summary(RQ3b.3)
+
+compare_performance(RQ3b.1, RQ3b.2, RQ3b.3)
 
 # Compare means
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 1])
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 2])
-mean(trialDataset$TE_after_prompt[!is.na(trialDataset$TE_after_prompt) & trialDataset$number == 3])
 
 MuMIn::r.squaredGLMM(RQ3b.final)
 confint(RQ3b.final)
