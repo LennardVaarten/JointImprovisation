@@ -25,6 +25,7 @@ install.packages("stringr")
 install.packages("tidyr")
 install.packages("sjPlot")
 install.packages("effects")
+install.packages("ggpval")
 
 library(ggplot2)
 library(RTransferEntropy)
@@ -38,8 +39,7 @@ library(future)
 library(performance)
 library(stringr)
 library(tidyr)
-library(sjPlot)
-library(effects)
+library(ggpval)
 
 # Importing libraries
 # Importing our sliding window-averaged data
@@ -494,9 +494,9 @@ lapply(spectralflatness_TEvalues_random_pertrial, write, "C:/Shortcutsensei/Join
 rms_TEvalues_random_pertrial
 
 # Get just the values from each key-value pair in the list, so that we can perform our statistical tests
-rms_TEvalues_raw = unname(unlist(rms_TEvalues_perpair))
-tonnetzdistance_TEvalues_raw = unname(unlist(tonnetzdistance_TEvalues_perpair))
-spectralflatness_TEvalues_raw = unname(unlist(spectralflatness_TEvalues_perpair))
+rms_TEvalues_raw = unname(unlist(rms_TEvalues_pertrial))
+tonnetzdistance_TEvalues_raw = unname(unlist(tonnetzdistance_TEvalues_pertrial))
+spectralflatness_TEvalues_raw = unname(unlist(spectralflatness_TEvalues_pertrial))
 
 length(rms_TEvalues_pertrial)
 
@@ -721,22 +721,6 @@ sd(rms_TEvalues_random_pertrial)
 # of real vs random pairs
 wilcox.test(rms_TEvalues_raw, rms_TEvalues_random_pertrial)
 
-# Plot the relationship
-# 773 * 657
-
-RQ1a.1_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random_pertrial)
-names(RQ1a.1_df) = c("RMS ETE real", "RMS ETE random")
-RQ1a.1_df = gather(RQ1a.1_df)
-ggplot(RQ1a.1_df, aes(x=value, y=key, fill=key)) + 
-  geom_violin() +
-  coord_flip() +
-  xlab("ETE") +
-  ylab("Random-real") +
-  stat_summary(fun = "mean",
-               geom = "point", 
-               colour = "black") +
-  theme(legend.position="none", text = element_text(size = 15))
-
 # Tonnetz distance TE
 qqnorm(tonnetzdistance_TEvalues_raw)
 
@@ -746,19 +730,6 @@ mean(tonnetzdistance_TEvalues_random_pertrial)
 sd(tonnetzdistance_TEvalues_random)
 
 wilcox.test(tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random_pertrial)
-
-RQ1a.2_df = data.frame(tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random_pertrial)
-names(RQ1a.2_df) = c("Tonnetz dist. ETE real", "Tonnetz dist. ETE random")
-RQ1a.2_df = gather(RQ1a.2_df)
-ggplot(RQ1a.2_df, aes(x=value, y=key, fill=key)) + 
-  geom_violin() +
-  coord_flip() +
-  xlab("ETE") +
-  ylab("Random-real") +
-  stat_summary(fun = "mean",
-               geom = "point", 
-               colour = "black") +
-  theme(legend.position="none", text = element_text(size = 17))
 
 # Spectral flatness TE
 qqnorm(spectralflatness_TEvalues_raw)
@@ -770,18 +741,21 @@ sd(spectralflatness_TEvalues_random_pertrial)
 
 wilcox.test(spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random_pertrial)
 
-RQ1a.3_df = data.frame(spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random_pertrial)
-names(RQ1a.3_df) = c("Spectral fltn. ETE real", "Spectral fltn. ETE random")
-RQ1a.3_df = gather(RQ1a.3_df)
-ggplot(RQ1a.3_df, aes(x=value, y=key, fill=key)) + 
+RQ1a.df = data.frame(rms_TEvalues_raw, rms_TEvalues_random_pertrial, 
+                       tonnetzdistance_TEvalues_raw, tonnetzdistance_TEvalues_random_pertrial,
+                       spectralflatness_TEvalues_raw, spectralflatness_TEvalues_random_pertrial)
+names(RQ1a.df) = c("RMS real", "RMS random", "Tonn. dist. real", "Tonn. dist. random", "Spec. fltn. real", "Spec. fltn. random")
+RQ1a.df = gather(RQ1a.df)
+ggplot(RQ1a.df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
   xlab("ETE") +
-  ylab("Random-real") +
+  ylab("") +
   stat_summary(fun = "mean",
                geom = "point", 
                colour = "black") +
-  theme(legend.position="none", text = element_text(size = 17))
+  theme(legend.position="none", text = element_text(size = 17)) +
+  scale_fill_manual(values=c("tomato2", "tomato2", "mediumturquoise", "mediumturquoise", "darkolivegreen3", "darkolivegreen3"))
 
 # RQ1b - same as before, but now with rho values
 
@@ -795,19 +769,6 @@ sd(rms_rhovalues_random)
 
 wilcox.test(rms_rhovalues_raw, rms_rhovalues_random)
 
-RQ1b.1_df = data.frame(rms_rhovalues_raw, rms_rhovalues_random)
-names(RQ1b.1_df) = c("RMS rho real", "RMS rho random")
-RQ1b.1_df = gather(RQ1b.1_df)
-ggplot(RQ1b.1_df, aes(x=value, y=key, fill=key)) + 
-  geom_violin() +
-  coord_flip() +
-  xlab("Rho") +
-  ylab("Random-real") +
-  stat_summary(fun = "mean",
-               geom = "point", 
-               colour = "black") +
-  theme(legend.position="none", text = element_text(size = 17))
-
 # Tonnetz distance rho
 qqnorm(tonnetzdistance_rhovalues_raw)
 
@@ -817,19 +778,6 @@ mean(tonnetzdistance_rhovalues_random)
 sd(tonnetzdistance_rhovalues_random)
 
 wilcox.test(tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random)
-
-RQ1b.2_df = data.frame(tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random)
-names(RQ1b.2_df) = c("Tonnetz dist. rho real", "Tonnetz dist. rho random")
-RQ1b.2_df = gather(RQ1b.2_df)
-ggplot(RQ1b.2_df, aes(x=value, y=key, fill=key)) + 
-  geom_violin() +
-  coord_flip() +
-  xlab("Rho") +
-  ylab("Random-real") +
-  stat_summary(fun = "mean",
-               geom = "point", 
-               colour = "black") +
-  theme(legend.position="none", text = element_text(size = 17))
 
 # Spectral flatness rho
 qqnorm(spectralflatness_rhovalues_raw)
@@ -841,18 +789,21 @@ sd(spectralflatness_rhovalues_random)
 
 wilcox.test(spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
 
-RQ1b.3_df = data.frame(spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
-names(RQ1b.3_df) = c("Spectral fltn. rho real", "Spectral fltn. rho random")
-RQ1b.3_df = gather(RQ1b.3_df)
-ggplot(RQ1b.3_df, aes(x=value, y=key, fill=key)) + 
+RQ1b.df = data.frame(rms_rhovalues_raw, rms_rhovalues_random, 
+                     tonnetzdistance_rhovalues_raw, tonnetzdistance_rhovalues_random,
+                     spectralflatness_rhovalues_raw, spectralflatness_rhovalues_random)
+names(RQ1b.df) = c("RMS real", "RMS random", "Tonn. dist. real", "Tonn. dist. random", "Spec. fltn. real", "Spec. fltn. random")
+RQ1b.df = gather(RQ1b.df)
+plt = ggplot(RQ1b.df, aes(x=value, y=key, fill=key)) + 
   geom_violin() +
   coord_flip() +
   xlab("Rho") +
-  ylab("Random-real") + 
+  ylab("") +
   stat_summary(fun = "mean",
-               geom = "point",
+               geom = "point", 
                colour = "black") +
-  theme(legend.position="none", text = element_text(size = 17))
+  theme(legend.position="none", text = element_text(size = 17)) +
+  scale_fill_manual(values=c("tomato2", "tomato2", "mediumturquoise", "mediumturquoise", "darkolivegreen3", "darkolivegreen3"))
 
 #_____________________________________________________________________________________
 
@@ -940,52 +891,42 @@ compare_performance(RQ2.3, RQ2.4)
 
 View(trialData)
 # Plot the relationship
-RQ2.1_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full_bin)
-RQ2.1_df = RQ2a_df[complete.cases(RQ2.1_df),]
-names(RQ2.1_df) = c("Subjective_Quality", "Transfer_Entropy")
-RQ2.1_df$predlmer = predict(RQ2.1)
-ggplot(RQ2.1_df, aes(x=Transfer_Entropy, y=Subjective_Quality)) + 
-  geom_point(na.rm=TRUE) +
-  geom_smooth(aes(y = predlmer), size = 1) +
-  scale_y_continuous(breaks=seq(1,7))
-
 
 RQ2TE = lmer(goodImproAll ~ TE_rms_full + (1|trio),
              trialDataset[trialDataset$take > 4,])
 RQ2TE_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$TE_rms_full)
 RQ2TE_df = RQ2TE_df[complete.cases(RQ2TE_df),]
-names(RQ2TE_df) = c("Subjective_Quality", "ETE")
+names(RQ2TE_df) = c("Subjective_quality", "ETE")
 RQ2TE_df$predlmer = predict(RQ2TE)
 
-ggplot(RQ2TE_df, aes(x=ETE, y=Subjective_Quality)) + 
+ggplot(RQ2TE_df, aes(x=ETE, y=Subjective_quality)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7)) + 
-  theme(text = element_text(size = 22))
+  theme(text = element_text(size = 17))
 
 RQ2Uni = lmer(goodImproAll ~ unidirectionality_index_full + (1|trio),
              trialDataset[trialDataset$take > 4,])
 RQ2Uni_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$unidirectionality_index_full)
 RQ2Uni_df = RQ2Uni_df[complete.cases(RQ2Uni_df),]
-names(RQ2Uni_df) = c("Subjective_Quality", "Unidirectionality_Index")
+names(RQ2Uni_df) = c("Subjective_quality", "Unidirectionality_index")
 RQ2Uni_df$predlmer = predict(RQ2Uni)
-
-ggplot(RQ2Uni_df, aes(x=Unidirectionality_Index, y=Subjective_Quality)) + 
+ggplot(RQ2Uni_df, aes(x=Unidirectionality_index, y=Subjective_quality)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7)) + 
-  theme(text = element_text(size = 22))
+  theme(text = element_text(size = 17))
 
 RQ2Rho_df = data.frame(trialDataset[trialDataset$take > 4,]$goodImproAll, trialDataset[trialDataset$take > 4,]$rho_rms_full)
 RQ2Rho_df = RQ2Rho_df[complete.cases(RQ2Rho_df),]
-names(RQ2Rho_df) = c("Subjective_Quality", "Rho")
+names(RQ2Rho_df) = c("Subjective_quality", "Rho")
 RQ2Rho_df$predlmer = predict(RQ2.3)
 
-ggplot(RQ2Rho_df, aes(x=Rho, y=Subjective_Quality)) + 
+ggplot(RQ2Rho_df, aes(x=Rho, y=Subjective_quality)) + 
   geom_point(na.rm=TRUE) +
   geom_smooth(aes(y = predlmer), size = 1) +
   scale_y_continuous(breaks=seq(1,7)) + 
-  theme(text = element_text(size = 22))
+  theme(text = element_text(size = 17))
 
 #_____________________________________________________________________________________
 
@@ -1127,6 +1068,11 @@ trialDataset$rho_after_prompt = unlist(trialDataset$rho_after_prompt)
 
 #_____________________________________________________________________________________
 
+# Make levels of prompt type more easily interpretable
+trialDataset$type[trialDataset$type == 0] = "NO"
+trialDataset$type[trialDataset$type == 1] = "ME"
+trialDataset$type[trialDataset$type == 2] = "WE"
+
 # Turn into factor variables
 trialDataset$type = factor(trialDataset$type)
 trialDataset$trio = factor(trialDataset$trio)
@@ -1136,10 +1082,18 @@ RQ3a.1 = lmer(sqrt(TE_after_prompt) ~ number + type + number:type + (1|trio),
               trialDataset[!is.na(trialDataset$TE_after_prompt),])
 summary(RQ3a.1)
 
+ggplot(trialDataset[!is.na(sqrt(trialDataset$TE_after_prompt)),],aes(number, sqrt(TE_after_prompt), col=trio )) + 
+  facet_grid(~type) +
+  geom_line(aes(y=predict(RQ3a.1)), size=0.8, color="black") +
+  geom_point(alpha = 0.3) +
+  theme_bw() +
+  labs(y="Post-prompt ETE (sqrt-transformed)", x="Prompt number", title="Prompt type") +
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5, size=17), text = element_text(size = 17)) +
+  scale_x_continuous(breaks=c(1,2,3))
+
 RQ3a.2 = lmer(sqrt(TE_after_prompt) ~ type + number:type + (1|trio),
               trialDataset[!is.na(trialDataset$TE_after_prompt),])
 summary(RQ3a.2)
-
 
 RQ3a.3 = lmer(sqrt(TE_after_prompt) ~ type + (1|trio),
               trialDataset[!is.na(trialDataset$TE_after_prompt),])
@@ -1147,48 +1101,23 @@ summary(RQ3a.3)
 
 compare_performance(RQ3a.1, RQ3a.2, RQ3a.3)
 
-
-trialDataset[trialDataset$type==1, "TE_after_prompt"]
-
-RQ3a_df = data.frame(rms_TEvalues_raw, rms_TEvalues_random)
-names(RQ1a_df) = c("RMS TE real", "RMS TE random")
-RQ1a_df = gather(RQ1a_df)
-ggplot(RQ1a_df, aes(x=value, y=key)) + 
-  geom_violin() +
-  coord_flip() +
-  xlab("Transfer Entropy") +
-  ylab("Random-real") +
-  stat_summary(fun = "mean",
-               geom = "point", 
-               colour = "black")
-
-effects_RQ3a.3 <- as.data.frame(effect(term="type", mod=RQ3a.3))
-urchin_plot <- ggplot() + 
-  geom_point(data=trialDataset[!is.na(trialDataset$TE_after_prompt),], aes(type, sqrt(TE_after_prompt))) + 
-  geom_point(data=effects_RQ3a.3, aes(x=type, y=fit), color="blue") +
-  geom_line(data=effects_RQ3a.3, aes(x=type, y=fit), color="blue") +
-  geom_ribbon(data= effects_RQ3a.3, aes(x=type, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") +
-  labs(x="Urchins (centered & scaled)", y="Coral Cover")
-urchin_plot
-
-step(RQ3a.full, direction = "both")
-# Save best fitting model
-RQ3a.final = lmer(TE_after_prompt ~ type + (1|trio), 
-                  trialDataset[!is.na(trialDataset$TE_after_prompt),])
-summary(RQ3a.final)
-
-compare_performance(RQ3a.full, RQ3a.final)
-
-View(musicianDataset)
-
 # RQ3b
 RQ3b.1 = lmer(rho_after_prompt ~ number + type + number:type + (1|trio),
                  trialDataset[!is.na(trialDataset$rho_after_prompt),])
 summary(RQ3b.1)
 
+ggplot(trialDataset[!is.na(trialDataset$rho_after_prompt),],aes(number, rho_after_prompt, col=trio )) + 
+  facet_grid(~type) +
+  geom_line(aes(y=predict(RQ3b.1)), size=0.8) +
+  geom_point(alpha = 0.3) +
+  theme_bw() +
+  labs(y="Post-prompt rho", x="Prompt number", title="Prompt type") +
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5, size=17), text = element_text(size = 17)) +
+  scale_x_continuous(breaks=c(1,2,3))
+
 qqnorm(residuals(RQ3b.1))
 
-RQ3b.2 = lmer(rho_after_prompt ~ number + type + (1|trio), 
+RQ3b.2 = lmer(rho_after_prompt ~ number + type + (1 |trio), 
               trialDataset[!is.na(trialDataset$rho_after_prompt),])
 summary(RQ3b.2)
 
@@ -1198,14 +1127,10 @@ summary(RQ3b.3)
 
 compare_performance(RQ3b.1, RQ3b.2, RQ3b.3)
 
-# Compare means
-
-MuMIn::r.squaredGLMM(RQ3b.final)
-confint(RQ3b.final)
-
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 1])
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 2])
-mean(trialDataset$rho_after_prompt[!is.na(trialDataset$rho_after_prompt) & trialDataset$number == 3])
+# Convert to factor variable for ls_means() plot
+trialDataset$number = factor(trialDataset$number)
+RQ3a.1.lsm <- ls_means(RQ3a.1)
+plot(RQ3a.1.lsm)
 
 #_____________________________________________________________________________________
 
@@ -1235,7 +1160,6 @@ for(group in 1:12) {
       prompt_heard_1 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[1,pair],]$prompt_heard
       prompt_heard_2 = musicianDataset[musicianDataset$trio == group & musicianDataset$take == trial & musicianDataset$booth == pairs[2,pair],]$prompt_heard
       
-      # CHECK LATER
       if (length(prompt_heard_1) != 0 & length(prompt_heard_2) != 0){
         colname1 = sprintf("g%s_t%s_b%s", group, trial, pairs[1,pair])
         colname2 = sprintf("g%s_t%s_b%s", group, trial, pairs[2,pair])
@@ -1257,6 +1181,9 @@ for(group in 1:12) {
 }
 
 # Create dataframe with the new variables
+
+smooth = min(unname(unlist(RQ4_pair_df$TE_pair_afterprompt))[unname(unlist(RQ4_pair_df$TE_pair_afterprompt)) > 0])
+
 RQ4_pair_df = data.frame(from = from)
 RQ4_pair_df$to = to
 RQ4_pair_df$TE_pair_full = TE_pair_full
@@ -1270,14 +1197,9 @@ for(row in 1:nrow(RQ4_pair_df)){
   # twice for a pair (so g1_t1_b1-->g1_t1_b2 AND g1_t1_b2-->g1_t1_b1) would not add any information.
   if(row%%2==1){
     if(length(unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])))!=0){
-      RQ4_pair_df$directionality_ratio_after_prompt[row] = unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])) / unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row+1]))
+      RQ4_pair_df$directionality_ratio_after_prompt[row] = unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row])) + smooth / unname(unlist(RQ4_pair_df$TE_pair_afterprompt[row+1])) + smooth
     }
   }
-}
-
-# get raw numeric values
-for(col in names(RQ4_pair_df)){
-  RQ4_pair_df[col] = unlist(RQ4_pair_df[col])
 }
 
 # Add columns for change in individual (i.e. per musician) predictability following the prompt,
@@ -1353,6 +1275,9 @@ RQ4_pair_df$from_prompt = factor(RQ4_pair_df$from_prompt)
 RQ4_pair_df$to_prompt = factor(RQ4_pair_df$to_prompt)
 # Add trio to DF (CHECK LATER)
 RQ4_pair_df$trio = rep(1:12, each=nrow(RQ4_pair_df)/12)
+RQ4_pair_df[RQ4_pair_df$directionality_ratio_after_prompt > 0,]
+
+RQ4_pair_df$directionality_ratio_after_prompt[sapply(RQ4_pair_df$directionality_ratio_after_prompt, is.infinite)] <- NA
 
 # RQ4a
 # Use square root transformation, because residuals highly non-normal (CHECK LATER)
